@@ -1,0 +1,2 @@
+# Verify all file checksums
+bundle verify /path/to/bundle

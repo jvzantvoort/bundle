@@ -1,0 +1,2 @@
+# Create bundle from directory
+bundle create /path/to/files --title "My Bundle"
