@@ -225,6 +225,90 @@ type Bundle struct {
 
 ---
 
+### 6. Pool Configuration
+
+**Purpose**: Defines centralized storage locations for bundle collections.
+
+**Go Struct**:
+```go
+package pool
+
+// Pool represents a centralized bundle storage location
+type Pool struct {
+    Name  string // Pool identifier (from config)
+    Root  string // Absolute path to pool root directory
+    Title string // Human-readable pool name
+}
+
+// Config represents the application configuration
+type Config struct {
+    Pools    map[string]PoolConfig `yaml:"pools"`
+    LogLevel string                `yaml:"log_level"`
+}
+
+// PoolConfig represents a pool configuration in config.yaml
+type PoolConfig struct {
+    Root  string `yaml:"root"`
+    Title string `yaml:"title"`
+}
+```
+
+**Validation Rules**:
+- `Name`: Required, valid identifier (from config key)
+- `Root`: Required, absolute path, must be a directory
+- `Title`: Optional, human-readable description
+
+**Configuration File** (`~/.config/bundle/config.yaml`):
+```yaml
+pools:
+  default:
+    root: /mnt/bundles
+    title: Default Bundle Pool
+  
+  backup:
+    root: /backup/bundles
+    title: Backup Pool
+  
+  archive:
+    root: /archive/bundles
+    title: Archive Pool
+
+log_level: info
+```
+
+**Storage Layout**:
+```text
+/mnt/bundles/                                           # Pool root
+├── a1b2c3d4e5f67890.../                               # Bundle (by checksum)
+│   ├── file1.jpg
+│   ├── file2.mp4
+│   └── .bundle/
+│       ├── META.json
+│       ├── STATE.json
+│       ├── TAGS.txt
+│       └── SHA256SUM.txt
+└── f7e8d9c0b1a2345.../                                # Another bundle
+    ├── data.txt
+    └── .bundle/
+        └── ...
+```
+
+**Operations**:
+- `GetPool(name string) (*Pool, error)` - Load pool from config
+- `ListPools() ([]Pool, error)` - List all configured pools
+- `Import(bundlePath string, move bool) error` - Import bundle to pool
+- `ListBundles() ([]*metadata.Metadata, error)` - List bundles in pool
+
+**Configuration Loading**:
+1. Search paths (in order):
+   - `./config.yaml`
+   - `~/.config/bundle/config.yaml`
+   - `/etc/bundle/config.yaml`
+2. First file found is loaded
+3. Missing pools section is allowed (pools optional)
+
+---
+
 ## Relationships
 
 ```text
@@ -234,6 +318,10 @@ Bundle
 ├── Tags (1:1) - Stored in .bundle/TAGS.txt
 └── Files (1:N) - Stored in .bundle/SHA256SUM.txt
     └── ChecksumRecord (N) - One per file in bundle
+
+Pool
+└── Bundles (1:N) - Stored in <pool_root>/<checksum>/
+    └── Bundle (N) - Each bundle stored by checksum
 ```
 
 ---
