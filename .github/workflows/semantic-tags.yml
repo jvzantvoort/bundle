@@ -3,7 +3,7 @@ name: Update Semantic Version Tags
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'bundle-[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   update-tags:
@@ -20,37 +20,37 @@ jobs:
           # Get the tag that triggered this workflow
           TAG=${GITHUB_REF#refs/tags/}
           echo "Processing tag: $TAG"
-          
+
           # Extract version components (remove 'v' prefix)
           VERSION=${TAG#v}
-          
+
           # Split version into major, minor, patch
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          
+
           # Validate version components
           if ! [[ "$MAJOR" =~ ^[0-9]+$ ]] || ! [[ "$MINOR" =~ ^[0-9]+$ ]] || ! [[ "$PATCH" =~ ^[0-9]+$ ]]; then
             echo "Invalid version format: $TAG"
             exit 1
           fi
-          
+
           echo "Version components: MAJOR=$MAJOR, MINOR=$MINOR, PATCH=$PATCH"
-          
+
           # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Create/update major version tag (v1)
           MAJOR_TAG="v${MAJOR}"
           echo "Updating tag: $MAJOR_TAG"
           git tag -f "$MAJOR_TAG" "$TAG"
           git push -f origin "$MAJOR_TAG"
-          
+
           # Create/update minor version tag (v1.2)
           MINOR_TAG="v${MAJOR}.${MINOR}"
           echo "Updating tag: $MINOR_TAG"
           git tag -f "$MINOR_TAG" "$TAG"
           git push -f origin "$MINOR_TAG"
-          
+
           echo "Successfully updated semantic version tags:"
           echo "  - $MAJOR_TAG -> $TAG"
           echo "  - $MINOR_TAG -> $TAG"
