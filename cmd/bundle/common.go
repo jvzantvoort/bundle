@@ -1,12 +1,32 @@
+// Package main implements the bundle CLI tool.
+//
+// It provides common utility functions shared across CLI commands for
+// flag parsing and command handling.
 package main
 
 import (
-	"os"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
+// GetString retrieves a string flag value from a cobra command.
+//
+// It safely retrieves string flags with debug logging of the value.
+// Returns empty string if flag is not set or doesn't exist.
+//
+// Example:
+//
+//	title := GetString(*cmd, "title")
+//	if title != "" {
+//	    fmt.Printf("Title: %s\n", title)
+//	}
+//
+// Parameters:
+//   - cmd: cobra command containing the flag
+//   - name: flag name
+//
+// Returns:
+//   - string: flag value or empty string
 func GetString(cmd cobra.Command, name string) string {
 	retv, _ := cmd.Flags().GetString(name)
 	if len(retv) != 0 {
@@ -15,28 +35,4 @@ func GetString(cmd cobra.Command, name string) string {
 		log.Debugf("%s returned nothing", name)
 	}
 	return retv
-}
-
-func handleLogCmd(cmd *cobra.Command, args []string) {
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-	}
-	log.Debugf("%s: start", cmd.Use)
-	defer log.Debugf("%s: end", cmd.Use)
-
-	if len(args) == 0 {
-		log.Error("No message provided")
-		if err := cmd.Help(); err != nil {
-			log.Error(err)
-		}
-		os.Exit(1)
-	}
-	/*
-	logmsg := logging.NewLogMessage(cmd.Use)
-	logmsg.ImportArgs(cmd, args)
-	err := logmsg.Print()
-	if err != nil {
-		log.Error(err)
-
-	}*/
 }

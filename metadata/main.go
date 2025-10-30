@@ -1,3 +1,28 @@
+// Package metadata provides types and functions for managing bundle metadata.
+//
+// Metadata includes human-readable information about a bundle such as title,
+// author, creation timestamp, and the deterministic bundle checksum. All
+// metadata is stored in .bundle/META.json in JSON format.
+//
+// Example usage:
+//
+//	// Create metadata
+//	meta := &metadata.Metadata{
+//	    Title:          "Vacation Photos",
+//	    CreatedAt:      time.Now(),
+//	    BundleChecksum: "abc123...",
+//	    Author:         "username",
+//	    Version:        1,
+//	}
+//
+//	// Save to .bundle/META.json
+//	err := meta.Save("/path/to/bundle")
+//
+//	// Load from .bundle/META.json
+//	meta, err := metadata.Load("/path/to/bundle")
+//
+//	// Validate metadata
+//	err = meta.Validate()
 package metadata
 
 import (
@@ -8,7 +33,27 @@ import (
 	"regexp"
 )
 
-// Load reads metadata from .bundle/META.json
+// Load reads metadata from .bundle/META.json.
+//
+// It parses the JSON file and returns a Metadata struct. The file must
+// exist and contain valid JSON matching the Metadata structure.
+//
+// Example:
+//
+//	meta, err := metadata.Load("/path/to/bundle")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Title: %s\n", meta.Title)
+//	fmt.Printf("Author: %s\n", meta.Author)
+//	fmt.Printf("Created: %s\n", meta.CreatedAt.Format(time.RFC3339))
+//
+// Parameters:
+//   - bundlePath: absolute or relative path to the bundle directory
+//
+// Returns:
+//   - *Metadata: parsed metadata
+//   - error: if file cannot be read or JSON is invalid
 func Load(bundlePath string) (*Metadata, error) {
 	metaFile := filepath.Join(bundlePath, ".bundle", "META.json")
 	data, err := os.ReadFile(metaFile)
@@ -24,7 +69,30 @@ func Load(bundlePath string) (*Metadata, error) {
 	return &meta, nil
 }
 
-// Save writes metadata to .bundle/META.json
+// Save writes metadata to .bundle/META.json.
+//
+// It serializes the metadata to JSON with indentation for readability and
+// writes it to .bundle/META.json. The file is created with 0644 permissions.
+//
+// Example:
+//
+//	meta := &metadata.Metadata{
+//	    Title:          "My Bundle",
+//	    CreatedAt:      time.Now(),
+//	    BundleChecksum: "abc123...",
+//	    Author:         "username",
+//	    Version:        1,
+//	}
+//	err := meta.Save("/path/to/bundle")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+// Parameters:
+//   - bundlePath: absolute or relative path to the bundle directory
+//
+// Returns:
+//   - error: if file cannot be created, written, or JSON cannot be serialized
 func (m *Metadata) Save(bundlePath string) error {
 	metaFile := filepath.Join(bundlePath, ".bundle", "META.json")
 
@@ -36,7 +104,29 @@ func (m *Metadata) Save(bundlePath string) error {
 	return os.WriteFile(metaFile, data, 0644)
 }
 
-// Validate checks metadata fields against validation rules
+// Validate checks metadata fields against validation rules.
+//
+// It validates:
+//   - BundleChecksum is exactly 64 lowercase hex characters
+//   - Version is >= 1
+//   - Author is not empty
+//   - CreatedAt is not zero
+//
+// Example:
+//
+//	meta := &metadata.Metadata{
+//	    Title:          "My Bundle",
+//	    CreatedAt:      time.Now(),
+//	    BundleChecksum: "abc123...",
+//	    Author:         "username",
+//	    Version:        1,
+//	}
+//	if err := meta.Validate(); err != nil {
+//	    log.Fatal("Invalid metadata:", err)
+//	}
+//
+// Returns:
+//   - error: describing the first validation failure, or nil if valid
 func (m *Metadata) Validate() error {
 	// Check bundle checksum format (64 hex characters)
 	if len(m.BundleChecksum) != 64 {
