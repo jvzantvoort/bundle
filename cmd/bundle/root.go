@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/jvzantvoort/bundle/config"
 	"github.com/jvzantvoort/bundle/messages"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -28,6 +29,8 @@ func Execute() {
 }
 
 func init() {
+	// Initialize configuration system
+	config.InitConfig()
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 

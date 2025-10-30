@@ -1,0 +1,22 @@
+List all bundles stored in a centralized pool.
+
+Displays a table of all bundles with their checksums, titles, authors,
+and creation dates. Bundles are sorted alphabetically by title.
+
+Examples:
+  # List bundles in default pool
+  bundle list_bundles
+
+  # List bundles in specific pool
+  bundle list_bundles --pool backup
+
+  # List with JSON output
+  bundle list_bundles --json
+
+Configuration:
+  Pools are configured in ~/.config/bundle/config.yaml:
+
+  pools:
+    default:
+      root: /mnt/bundles
+      title: Default Bundle Pool
