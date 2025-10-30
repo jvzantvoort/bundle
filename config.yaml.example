@@ -1,0 +1,23 @@
+# Bundle Library Configuration File
+# Location: ~/.config/bundle/config.yaml
+
+# Pool configuration for centralized bundle storage
+# Each pool represents a storage location where bundles can be imported
+pools:
+  # Default pool - used when no pool is specified
+  default:
+    root: /mnt/bundles
+    title: Default Bundle Pool
+  
+  # Backup pool - for backup storage
+  backup:
+    root: /backup/bundles
+    title: Backup Bundle Pool
+  
+  # Archive pool - for long-term archival
+  archive:
+    root: /archive/bundles
+    title: Archive Pool
+
+# Logging configuration
+log_level: info  # Options: debug, info, warn, error

@@ -99,7 +99,11 @@ func Create(path string, title string) (*Bundle, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer bundleLock.Release()
+	defer func() {
+		if err := bundleLock.Release(); err != nil {
+			log.Errorf("failed to release lock: %v", err)
+		}
+	}()
 
 	// Create .bundle directory
 	bundleDir := filepath.Join(path, ".bundle")
@@ -217,7 +221,9 @@ func Verify(path string) (bool, []string, error) {
 
 	verified := len(corrupted) == 0
 	bundleState.MarkVerified(verified, time.Now())
-	bundleState.Save(path)
+	if err := bundleState.Save(path); err != nil {
+		log.Warnf("failed to save verification state: %v", err)
+	}
 
 	return verified, corrupted, nil
 }

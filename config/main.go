@@ -52,7 +52,7 @@ var (
 // InitConfig initializes the configuration system.
 //
 // It sets default values and configures the global logger with appropriate
-// formatting for CLI output.
+// formatting for CLI output. Also sets up configuration file locations.
 //
 // Example:
 //
@@ -62,13 +62,50 @@ var (
 //	}
 func InitConfig() {
 	viper.SetDefault("log_level", "info")
-	viper.AutomaticEnv()
-
-	// Setup logrus
+	
+	// Setup logrus first so we can log config loading
 	Logger.SetOutput(os.Stderr)
 	Logger.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
+	Logger.SetLevel(logrus.InfoLevel) // Default to info until config is loaded
+	
+	// Set configuration file name and locations
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("$HOME/.config/bundle")
+	viper.AddConfigPath("/etc/bundle")
+	viper.AddConfigPath(".")
+	
+	Logger.Debugf("Configuration search paths:")
+	Logger.Debugf("  - $HOME/.config/bundle/config.yaml")
+	Logger.Debugf("  - /etc/bundle/config.yaml")
+	Logger.Debugf("  - ./config.yaml")
+	
+	// Read configuration file (ignore if not found)
+	err := viper.ReadInConfig()
+	if err != nil {
+		Logger.Debugf("No configuration file found: %v", err)
+		Logger.Debugf("Using default configuration")
+	} else {
+		Logger.Infof("Configuration loaded from: %s", viper.ConfigFileUsed())
+		Logger.Debugf("Configuration content:")
+		
+		// Log all configuration keys and values
+		allSettings := viper.AllSettings()
+		for key, value := range allSettings {
+			Logger.Debugf("  %s = %v", key, value)
+		}
+		
+		// Set log level from config
+		logLevel := viper.GetString("log_level")
+		if logLevel == "debug" {
+			Logger.SetLevel(logrus.DebugLevel)
+			Logger.Debugf("Log level set to debug from configuration")
+		}
+	}
+	
+	viper.AutomaticEnv()
 }
 
 // SetLogLevel configures the logging level.

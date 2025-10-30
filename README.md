@@ -20,6 +20,7 @@ Bundle Library implements a Digital Asset Management (DAM) system where files ar
 - **Bundle Creation**: Create bundles from directories with automatic checksum computation
 - **Integrity Verification**: Detect file corruption or modifications
 - **Metadata Management**: Human-readable titles and searchable tags
+- **Centralized Storage**: Import bundles to managed pools with content-addressable storage
 - **CLI Interface**: Command-line tools with both table and JSON output formats
 - **Library-First Design**: Standalone Go packages that can be used independently
 
@@ -83,6 +84,24 @@ bundle list /path/to/bundle
 bundle info /path/to/bundle --json
 ```
 
+### Centralized Storage (Pools)
+
+```bash
+# Import bundle to centralized pool
+bundle import /path/to/bundle
+
+# List all bundles in pool
+bundle list_bundles
+
+# Import to specific pool
+bundle import /path/to/bundle --pool backup
+
+# Move bundle to archive (removes local copy)
+bundle import /path/to/bundle --pool archive --move
+```
+
+See [POOLS.md](POOLS.md) for complete pool documentation.
+
 ## Architecture
 
 Bundle Library follows a library-first architecture with independent components:
@@ -91,6 +110,7 @@ Bundle Library follows a library-first architecture with independent components:
 - `metadata/` - META.json handling (title, author, timestamps)
 - `state/` - STATE.json handling (verification status, replicas)
 - `tag/` - TAGS.txt handling (searchable labels)
+- `pool/` - Centralized storage and pool management
 - `scanner/` - Directory traversal and file discovery
 - `lock/` - Concurrency control for write operations
 - `bundle/` - High-level bundle operations
@@ -101,6 +121,7 @@ CLI commands in `cmd/` use dependency injection to call library functions.
 
 - [Quickstart Guide](specs/001-bundle-core/quickstart.md) - Developer onboarding
 - [CLI Commands](specs/001-bundle-core/contracts/cli-commands.md) - Complete CLI reference
+- [Pool Storage](POOLS.md) - Centralized storage guide
 - [Data Model](specs/001-bundle-core/data-model.md) - Entity definitions
 - [Implementation Plan](specs/001-bundle-core/plan.md) - Technical architecture
 

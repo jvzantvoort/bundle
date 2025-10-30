@@ -1,0 +1,28 @@
+Import a bundle to a centralized storage pool.
+
+Bundles are stored in the pool using their checksum as the directory name,
+ensuring content-addressable storage and automatic deduplication.
+
+By default, the bundle is copied to the pool. Use --move to remove the
+source bundle after successful import.
+
+Examples:
+  # Copy bundle to default pool
+  bundle import /path/to/bundle
+
+  # Move bundle to specific pool
+  bundle import /path/to/bundle --pool backup --move
+
+  # Import with JSON output
+  bundle import /path/to/bundle --json
+
+Configuration:
+  Pools are configured in ~/.config/bundle/config.yaml:
+
+  pools:
+    default:
+      root: /mnt/bundles
+      title: Default Bundle Pool
+    backup:
+      root: /backup/bundles
+      title: Backup Pool

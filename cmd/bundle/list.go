@@ -95,9 +95,9 @@ func handleListCmd(cmd *cobra.Command, args []string) {
     table := utils.OutputTable(os.Stdout)
     table.Header("Filename", "Checksum", "Size")
     for _, e := range entries {
-        table.Append([]string{e.Path, e.Checksum, formatBytes(e.Size)})
+        _ = table.Append([]string{e.Path, e.Checksum, formatBytes(e.Size)})
     }
-    table.Render()
+    _ = table.Render()
     log.Debugf("\nTotal: %d files, %s", len(entries), formatBytes(totalSize))
 }
 
