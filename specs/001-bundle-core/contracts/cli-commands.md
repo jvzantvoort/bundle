@@ -401,7 +401,163 @@ Total: 5 tags
 
 ---
 
-## Future Commands (Out of Scope for MVP)
+### 8. `bundle rename <path> <new_title> [flags]`
+
+**Description**: Update the title (human-readable name) of a bundle.
+
+**Arguments**:
+- `<path>`: Bundle directory (required)
+- `<new_title>`: New title for the bundle (required)
+
+**Flags**:
+- `--json`: Output JSON instead of human-readable text
+
+**Behavior**:
+1. Load existing `META.json`
+2. Update `title` field
+3. Save updated metadata back to `META.json`
+4. All other metadata (checksum, author, created_at) remains unchanged
+
+**Exit Codes**:
+- **0**: Title updated successfully
+- **1**: Not a bundle OR metadata missing
+- **2**: I/O error
+
+**Output (Table Mode)**:
+```text
+Title updated: Iceland Vacation 2024 → Iceland Trip 2024
+```
+
+**Output (JSON Mode)**:
+```json
+{
+  "status": "renamed",
+  "path": "/home/user/photos/iceland-2024",
+  "old_title": "Iceland Vacation 2024",
+  "new_title": "Iceland Trip 2024",
+  "title": "Iceland Trip 2024"
+}
+```
+
+**Note**: Only the title field is modified. Bundle checksum, author, creation date, tags, and file checksums remain unchanged.
+
+---
+
+### 9. `bundle import <path> [flags]`
+
+**Description**: Import a bundle to a centralized pool (copy or move).
+
+**Arguments**:
+- `<path>`: Bundle directory to import (required)
+
+**Flags**:
+- `--pool <name>`: Target pool name (default: "default")
+- `--move`: Move instead of copy (removes source)
+- `--json`: Output JSON instead of human-readable text
+
+**Behavior**:
+1. Load bundle metadata to get checksum
+2. Load pool configuration from config file
+3. Create destination directory: `<pool_root>/<checksum>/`
+4. Copy (or move) bundle to destination
+5. Verify integrity after copy
+
+**Exit Codes**:
+- **0**: Import successful
+- **1**: Not a bundle OR pool not found in config
+- **2**: I/O error OR copy/move failed
+
+**Output (Table Mode)**:
+```text
+Bundle copied to pool 'default'
+Destination: /mnt/bundles/a1b2c3d4e5f67890...
+```
+
+**Output (JSON Mode)**:
+```json
+{
+  "status": "imported",
+  "operation": "copied",
+  "pool": "default",
+  "pool_root": "/mnt/bundles",
+  "source": "/home/user/photos/iceland-2024",
+  "destination": "/mnt/bundles/a1b2c3d4e5f67890123456789012345678901234567890123456789012345678",
+  "checksum": "a1b2c3d4e5f67890123456789012345678901234567890123456789012345678"
+}
+```
+
+**Configuration**: Requires pool definition in `~/.config/bundle/config.yaml`:
+```yaml
+pools:
+  default:
+    root: /mnt/bundles
+    title: Default Bundle Pool
+```
+
+---
+
+### 10. `bundle list_bundles [flags]`
+
+**Description**: List all bundles in a centralized pool.
+
+**Arguments**: None
+
+**Flags**:
+- `--pool <name>`: Pool name to list (default: "default")
+- `--json`: Output JSON instead of table
+
+**Behavior**:
+1. Load pool configuration
+2. Scan pool directory for bundle subdirectories
+3. Load metadata from each bundle
+4. Display summary table
+
+**Exit Codes**:
+- **0**: Successfully listed bundles
+- **1**: Pool not found in config OR pool directory doesn't exist
+- **2**: I/O error
+
+**Output (Table Mode)**:
+```text
+Pool: Default Bundle Pool (/mnt/bundles)
+
+Checksum         Title                    Author        Created
+--------         -----                    ------        -------
+a1b2c3d4e5f6...  Iceland Vacation 2024    jvzantvoort   2025-10-30 10:48
+f7e8d9c0b1a2...  Project Archive          jvzantvoort   2025-10-29 14:22
+3c4d5e6f7a8b...  Family Photos 2023       jvzantvoort   2025-10-28 09:15
+
+Total: 3 bundles
+```
+
+**Output (JSON Mode)**:
+```json
+{
+  "pool": "default",
+  "pool_root": "/mnt/bundles",
+  "bundles": [
+    {
+      "checksum": "a1b2c3d4e5f67890123456789012345678901234567890123456789012345678",
+      "title": "Iceland Vacation 2024",
+      "author": "jvzantvoort",
+      "created_at": "2025-10-30T10:48:42Z",
+      "path": "/mnt/bundles/a1b2c3d4e5f67890123456789012345678901234567890123456789012345678"
+    },
+    {
+      "checksum": "f7e8d9c0b1a2345678901234567890123456789012345678901234567890abcd",
+      "title": "Project Archive",
+      "author": "jvzantvoort",
+      "created_at": "2025-10-29T14:22:15Z",
+      "path": "/mnt/bundles/f7e8d9c0b1a2345678901234567890123456789012345678901234567890abcd"
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
+## Future Commands (Out of Scope for Current Implementation)
 
 ### `bundle rebuild <path>`
 Rebuild `SHA256SUM.txt` from current files (if accidentally deleted).
@@ -409,11 +565,14 @@ Rebuild `SHA256SUM.txt` from current files (if accidentally deleted).
 ### `bundle unlock <path>`
 Manually remove stale lock file.
 
-### `bundle rename <path> <new_title>`
-Update bundle title in `META.json`.
-
 ### `bundle replicate <path> <destination>`
 Copy bundle to remote storage and update `STATE.json` replicas.
+
+### `bundle search <query>`
+Search for bundles by tags, title, or other metadata.
+
+### `bundle export <pool> <checksum> <destination>`
+Export a bundle from a pool to a local directory.
 
 ---
 

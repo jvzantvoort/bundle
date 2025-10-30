@@ -57,7 +57,44 @@ As a digital asset manager, I need to inspect bundle contents and understand the
 
 ---
 
+### User Story 4 - Centralize Bundles in Pools (Priority: P2)
+
+As a digital asset manager, I need to import bundles into centralized storage pools so that I can organize bundles by purpose (backup, archive, production) and enable content-addressable storage with automatic deduplication.
+
+**Why this priority**: Essential for multi-bundle management and organization. Enables centralized storage workflows and content deduplication. Built on P1 bundle creation.
+
+**Independent Test**: Can be tested by creating multiple bundles, configuring pools, importing bundles, and verifying they are stored by checksum with proper metadata.
+
+**Acceptance Scenarios**:
+
+1. **Given** a local bundle and a configured pool, **When** user runs `bundle import <path> --pool default`, **Then** the system copies the bundle to `<pool_root>/<checksum>/` and reports success
+2. **Given** a local bundle, **When** user runs `bundle import <path> --pool archive --move`, **Then** the system moves (not copies) the bundle to the archive pool and removes the source
+3. **Given** two identical bundles imported to the same pool, **When** both imports complete, **Then** only one copy exists in the pool (deduplication by checksum)
+4. **Given** a configured pool, **When** user runs `bundle list_bundles --pool default`, **Then** the system displays a table of all bundles with checksum, title, author, and creation date
+5. **Given** a pool with bundles, **When** user runs `bundle list_bundles --pool default --json`, **Then** the system outputs JSON array of bundle metadata for programmatic access
+
+---
+
+### User Story 5 - Update Bundle Metadata (Priority: P3)
+
+As a digital asset manager, I need to update bundle titles after creation so that I can correct typos, improve organization, or update naming conventions without recreating bundles.
+
+**Why this priority**: Quality of life improvement for metadata management. Not critical for core functionality but improves user experience.
+
+**Independent Test**: Can be tested by creating a bundle with a title, updating it, and verifying the change in metadata without affecting the bundle checksum.
+
+**Acceptance Scenarios**:
+
+1. **Given** an existing bundle with title "Original Title", **When** user runs `bundle rename <path> "Updated Title"`, **Then** META.json is updated and the system reports the old → new title transition
+2. **Given** a renamed bundle, **When** user runs `bundle info <path>`, **Then** the system displays the updated title
+3. **Given** a renamed bundle, **When** checksums are verified, **Then** the bundle checksum remains unchanged (title is not part of content hash)
+4. **Given** a bundle, **When** user runs `bundle rename <path> "New Title" --json`, **Then** the system outputs JSON with both old and new titles for programmatic workflows
+
+---
+
 ### Edge Cases
+
+### Edge Cases (Original)
 
 - What happens when a bundle directory is empty (no files to checksum)?
   - System should create minimal `.bundle/` structure with empty SHA256SUM.txt and warn user
@@ -93,6 +130,16 @@ As a digital asset manager, I need to inspect bundle contents and understand the
 - **FR-013**: System MUST validate bundle integrity by recomputing file checksums and comparing against SHA256SUM.txt
 - **FR-014**: System MUST detect and report which specific files fail integrity checks
 - **FR-015**: CLI commands MUST display human-readable tables using tablewriter for non-JSON output
+- **FR-016**: System MUST support pool configuration via YAML files located at `./config.yaml`, `~/.config/bundle/config.yaml`, or `/etc/bundle/config.yaml` (first found is used)
+- **FR-017**: Pool configuration MUST define pool name, root path, and optional title for each storage location
+- **FR-018**: System MUST store bundles in pools using content-addressable paths: `<pool_root>/<bundle_checksum>/`
+- **FR-019**: Pool import operations MUST support both copy (default) and move modes via `--move` flag
+- **FR-020**: System MUST automatically deduplicate bundles in pools (identical checksums = same storage path)
+- **FR-021**: System MUST provide `import` command to copy/move bundles to configured pools
+- **FR-022**: System MUST provide `list_bundles` command to display all bundles in a pool with metadata
+- **FR-023**: System MUST provide `rename` command to update bundle title in META.json
+- **FR-024**: Rename operations MUST NOT change the bundle checksum (title is not part of content hash)
+- **FR-025**: Configuration loading MUST emit debug logs showing config file source, pool definitions, and all loaded values
 
 ### Key Entities
 
@@ -100,6 +147,8 @@ As a digital asset manager, I need to inspect bundle contents and understand the
 - **Asset/File**: Individual files within the bundle; each has SHA256 checksum, size, and path relative to bundle root; excludes `.bundle/` directory contents
 - **Metadata**: Title (human-readable name), creation timestamp, author, version number, bundle checksum; stored in META.json; title changes do not affect bundle checksum
 - **Tag**: User-assigned classification label; stored in TAGS.txt; used for search and organization; multiple tags allowed per bundle
+- **Pool**: Centralized storage location for bundles; configured in config.yaml; stores bundles by checksum in content-addressable layout
+- **Pool Configuration**: YAML definition containing pool name, root directory path, and optional human-readable title
 - **Checksum Record**: Entry in SHA256SUM.txt containing file path and SHA256 hash; sorted lexicographically by hash for deterministic bundle checksum computation
 - **Bundle State**: Verification status, last checked timestamp, known replica locations, total size; stored in STATE.json; updated by verify operations
 
@@ -113,6 +162,11 @@ As a digital asset manager, I need to inspect bundle contents and understand the
 - **SC-004**: All CLI commands complete successfully with exit code 0 for valid inputs and provide clear error messages (with exit codes 1 or 2) for invalid inputs
 - **SC-005**: Bundle operations support files up to 10GB without memory exhaustion (streaming checksum computation)
 - **SC-006**: CLI provides both human-readable table output and machine-parseable JSON output for all query commands
+- **SC-007**: Pool import operations complete successfully and bundles are stored in content-addressable paths
+- **SC-008**: Identical bundles imported to the same pool occupy only one storage location (100% deduplication)
+- **SC-009**: list_bundles command displays all bundles in a pool with accurate metadata
+- **SC-010**: Rename operations update title without changing bundle checksum
+- **SC-011**: Configuration loading emits debug logs showing which config file was loaded and all pool definitions
 - **SC-007**: System handles 1000+ files per bundle without performance degradation
 - **SC-008**: Concurrent bundle operations on different bundles execute without conflicts (lock isolation works correctly)
 
