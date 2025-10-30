@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Build Linux binary
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o bundle-linux-amd64 ./cmd/bundle
+
+      - name: Build macOS binary
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o bundle-darwin-amd64 ./cmd/bundle
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bundle-linux-amd64
+            bundle-darwin-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
