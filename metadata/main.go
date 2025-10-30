@@ -154,3 +154,39 @@ func (m *Metadata) Validate() error {
 
 	return nil
 }
+
+// UpdateTitle updates the title field and saves the metadata.
+//
+// This is a convenience function that loads the metadata, updates the title,
+// and saves it back to disk in a single operation.
+//
+// Example:
+//
+//	err := metadata.UpdateTitle("/path/to/bundle", "New Title")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+// Parameters:
+//   - bundlePath: absolute or relative path to the bundle directory
+//   - newTitle: new title to set
+//
+// Returns:
+//   - error: if metadata cannot be loaded or saved
+func UpdateTitle(bundlePath string, newTitle string) error {
+	// Load existing metadata
+	meta, err := Load(bundlePath)
+	if err != nil {
+		return fmt.Errorf("failed to load metadata: %w", err)
+	}
+
+	// Update title
+	meta.Title = newTitle
+
+	// Save back to disk
+	if err := meta.Save(bundlePath); err != nil {
+		return fmt.Errorf("failed to save metadata: %w", err)
+	}
+
+	return nil
+}
