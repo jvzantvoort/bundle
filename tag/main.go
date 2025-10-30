@@ -28,6 +28,7 @@ package tag
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -190,7 +191,9 @@ func (t *Tags) Save(bundlePath string) error {
 
 	writer := bufio.NewWriter(file)
 	for _, tag := range t.Tags {
-		writer.WriteString(tag + "\n")
+		if _, err := writer.WriteString(tag + "\n"); err != nil {
+			return fmt.Errorf("failed to write tag: %w", err)
+		}
 	}
 	return writer.Flush()
 }

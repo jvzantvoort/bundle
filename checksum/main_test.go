@@ -63,12 +63,18 @@ func TestChecksumFile_ComputeAndVerify(t *testing.T) {
 	// Create test files
 	file1 := filepath.Join(tmpDir, "file1.txt")
 	file2 := filepath.Join(tmpDir, "file2.txt")
-	os.WriteFile(file1, []byte("content1"), 0644)
-	os.WriteFile(file2, []byte("content2"), 0644)
+	if err := os.WriteFile(file1, []byte("content1"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+	if err := os.WriteFile(file2, []byte("content2"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
 
 	// Create .bundle directory
 	bundleDir := filepath.Join(tmpDir, ".bundle")
-	os.Mkdir(bundleDir, 0755)
+	if err := os.Mkdir(bundleDir, 0755); err != nil {
+		t.Fatalf("failed to create bundle dir: %v", err)
+	}
 
 	// Compute checksums
 	cf := &ChecksumFile{}
@@ -106,7 +112,9 @@ func TestChecksumFile_ComputeAndVerify(t *testing.T) {
 	}
 
 	// Modify file and verify again
-	os.WriteFile(file1, []byte("modified"), 0644)
+	if err := os.WriteFile(file1, []byte("modified"), 0644); err != nil {
+		t.Fatalf("failed to modify test file: %v", err)
+	}
 	corrupted, err = cf2.Verify(tmpDir)
 	if err != nil {
 		t.Fatalf("Verify() error = %v", err)

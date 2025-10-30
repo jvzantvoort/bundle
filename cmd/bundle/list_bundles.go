@@ -97,7 +97,7 @@ func handleListBundlesCmd(cmd *cobra.Command, args []string) {
 	table.Header("Checksum", "Title", "Author", "Created")
 
 	for _, meta := range bundles {
-		table.Append([]string{
+		_ = table.Append([]string{
 			meta.BundleChecksum[:12] + "...", // Truncate checksum
 			meta.Title,
 			meta.Author,
@@ -106,6 +106,6 @@ func handleListBundlesCmd(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Printf("Pool: %s (%s)\n\n", p.Title, p.Root)
-	table.Render()
+	_ = table.Render()
 	fmt.Printf("\nTotal: %d bundles\n", len(bundles))
 }
