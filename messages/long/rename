@@ -1,1 +1,20 @@
-long rename
+Update the title (human-readable name) of a bundle.
+
+The title is stored in .bundle/META.json and is used for display
+and identification purposes. The bundle checksum and other metadata
+remain unchanged.
+
+Examples:
+  # Update bundle title
+  bundle rename /path/to/bundle "New Title"
+
+  # Update with JSON output
+  bundle rename /path/to/bundle "New Title" --json
+
+Output:
+  The command confirms the new title and displays the bundle path.
+  Use --json flag for machine-readable output.
+
+Note:
+  Only the title field is modified. All other metadata (checksum,
+  author, creation date) remains unchanged.
