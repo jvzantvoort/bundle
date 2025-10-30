@@ -22,7 +22,7 @@ jobs:
           echo "Processing tag: $TAG"
 
           # Extract version components (remove 'v' prefix)
-          VERSION=${TAG#v}
+          VERSION=${TAG#bundle-}
 
           # Split version into major, minor, patch
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
