@@ -1,3 +1,22 @@
+// Package scanner provides directory traversal utilities for bundle operations.
+//
+// It implements efficient directory scanning with automatic exclusion of the
+// .bundle/ metadata directory. Supports both regular file scanning and symlink
+// following.
+//
+// Example usage:
+//
+//	// Scan directory (exclude .bundle/)
+//	files, err := scanner.ScanDirectory("/path/to/bundle")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	for _, file := range files {
+//	    fmt.Println(file)
+//	}
+//
+//	// Scan with symlink following
+//	files, err = scanner.ScanWithSymlinks("/path/to/bundle")
 package scanner
 
 import (
@@ -6,7 +25,28 @@ import (
 	"strings"
 )
 
-// ScanDirectory walks a directory tree and returns all file paths, excluding .bundle/
+// ScanDirectory walks a directory tree and returns all file paths, excluding .bundle/.
+//
+// It performs a recursive walk of the directory tree, collecting regular files
+// only. The .bundle/ directory is skipped entirely. Symlinks are not followed.
+//
+// Example:
+//
+//	files, err := scanner.ScanDirectory("/path/to/photos")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Found %d files\n", len(files))
+//	for _, file := range files {
+//	    fmt.Println(file)
+//	}
+//
+// Parameters:
+//   - rootPath: absolute or relative path to the directory to scan
+//
+// Returns:
+//   - []string: slice of absolute paths to regular files
+//   - error: if directory cannot be walked or accessed
 func ScanDirectory(rootPath string) ([]string, error) {
 	var files []string
 
@@ -37,7 +77,28 @@ func ScanDirectory(rootPath string) ([]string, error) {
 	return files, err
 }
 
-// ScanWithSymlinks is like ScanDirectory but follows symlinks
+// ScanWithSymlinks is like ScanDirectory but follows symlinks.
+//
+// It walks the directory tree and follows symbolic links to their targets.
+// Broken symlinks are skipped. The .bundle/ directory is still excluded.
+// Relative symlinks are resolved relative to their containing directory.
+//
+// Example:
+//
+//	files, err := scanner.ScanWithSymlinks("/path/to/photos")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	for _, file := range files {
+//	    fmt.Println(file)  // May include files outside rootPath (via symlinks)
+//	}
+//
+// Parameters:
+//   - rootPath: absolute or relative path to the directory to scan
+//
+// Returns:
+//   - []string: slice of absolute paths to files (including symlink targets)
+//   - error: if directory cannot be walked or accessed
 func ScanWithSymlinks(rootPath string) ([]string, error) {
 	var files []string
 

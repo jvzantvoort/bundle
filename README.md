@@ -104,6 +104,386 @@ CLI commands in `cmd/` use dependency injection to call library functions.
 - [Data Model](specs/001-bundle-core/data-model.md) - Entity definitions
 - [Implementation Plan](specs/001-bundle-core/plan.md) - Technical architecture
 
+## API Documentation
+
+### Core Packages
+
+Bundle Library exposes several independent packages that can be used programmatically:
+
+#### bundle Package
+
+High-level operations for managing bundles.
+
+```go
+import "github.com/jvzantvoort/bundle/bundle"
+
+// Create a new bundle
+b, err := bundle.Create("/path/to/files", "My Bundle Title")
+
+// Load an existing bundle
+b, err := bundle.Load("/path/to/bundle")
+
+// Verify bundle integrity
+verified, corruptedFiles, err := bundle.Verify("/path/to/bundle")
+```
+
+**Bundle Type:**
+```go
+type Bundle struct {
+    Path     string                 // Absolute path to bundle directory
+    Metadata *metadata.Metadata     // Loaded from META.json
+    State    *state.State           // Loaded from STATE.json
+    Tags     *tag.Tags              // Loaded from TAGS.txt
+    Files    *checksum.ChecksumFile // Loaded from SHA256SUM.txt
+}
+```
+
+#### metadata Package
+
+Manage bundle metadata (title, author, checksums).
+
+```go
+import "github.com/jvzantvoort/bundle/metadata"
+
+// Load metadata
+meta, err := metadata.Load("/path/to/bundle")
+
+// Create new metadata
+meta := &metadata.Metadata{
+    Title:          "My Bundle",
+    CreatedAt:      time.Now(),
+    BundleChecksum: "abc123...",
+    Author:         "username",
+    Version:        1,
+}
+
+// Save metadata
+err := meta.Save("/path/to/bundle")
+
+// Validate metadata
+err := meta.Validate()
+```
+
+**Metadata Type:**
+```go
+type Metadata struct {
+    Title          string    `json:"title"`           // Human-readable name
+    CreatedAt      time.Time `json:"created_at"`      // ISO 8601 timestamp
+    BundleChecksum string    `json:"bundle_checksum"` // SHA256 of sorted file checksums
+    Author         string    `json:"author"`          // System username
+    Version        int       `json:"version"`         // Metadata version (starts at 1)
+}
+```
+
+#### checksum Package
+
+SHA256 checksum computation and verification.
+
+```go
+import "github.com/jvzantvoort/bundle/checksum"
+
+// Create checksum file
+files := &checksum.ChecksumFile{}
+
+// Compute checksums for directory
+err := files.Compute("/path/to/files")
+
+// Load existing checksums
+err := files.Load("/path/to/bundle")
+
+// Save checksums
+err := files.Save("/path/to/bundle")
+
+// Verify file integrity
+corruptedFiles, err := files.Verify("/path/to/bundle")
+
+// Compute bundle checksum from file checksums
+bundleChecksum := checksum.ComputeBundleChecksum(checksums)
+```
+
+**ChecksumFile Type:**
+```go
+type ChecksumFile struct {
+    Records []ChecksumRecord
+}
+
+type ChecksumRecord struct {
+    Checksum string // SHA256 hash (64 hex characters)
+    FilePath string // Relative path from bundle root
+}
+```
+
+#### state Package
+
+Manage operational state (verification status, replicas).
+
+```go
+import "github.com/jvzantvoort/bundle/state"
+
+// Load state
+st, err := state.Load("/path/to/bundle")
+
+// Create new state
+st := &state.State{
+    Verified:    true,
+    LastChecked: time.Now(),
+    Replicas:    []string{},
+    SizeBytes:   1024000,
+}
+
+// Update verification status
+st.MarkVerified(true, time.Now())
+
+// Update size
+st.UpdateSize(2048000)
+
+// Add replica location
+st.AddReplica("s3://bucket/path")
+
+// Save state
+err := st.Save("/path/to/bundle")
+```
+
+**State Type:**
+```go
+type State struct {
+    Verified    bool      `json:"verified"`     // Last verification result
+    LastChecked time.Time `json:"last_checked"` // Last verification timestamp
+    Replicas    []string  `json:"replicas"`     // Known replica locations
+    SizeBytes   int64     `json:"size_bytes"`   // Total bundle size (excluding .bundle/)
+}
+```
+
+#### tag Package
+
+Manage searchable tags.
+
+```go
+import "github.com/jvzantvoort/bundle/tag"
+
+// Load tags
+tags, err := tag.Load("/path/to/bundle")
+
+// Create new tags
+tags := &tag.Tags{Tags: []string{"travel", "photos", "2024"}}
+
+// Add tags (deduplicates automatically)
+tags.Add("vacation", "europe")
+
+// Remove tags
+tags.Remove("2024")
+
+// Get sorted tag list
+tagList := tags.List()
+
+// Save tags
+err := tags.Save("/path/to/bundle")
+```
+
+**Tags Type:**
+```go
+type Tags struct {
+    Tags []string // Unique, lowercase tag names (1-64 chars, alphanumeric, ., _, -)
+}
+```
+
+**Tag Validation:**
+- Converted to lowercase for case-insensitive matching
+- Must match pattern: `^[a-z0-9._-]{1,64}$`
+- Automatically deduplicated
+
+#### lock Package
+
+File-based locking for concurrent write operations.
+
+```go
+import "github.com/jvzantvoort/bundle/lock"
+
+// Acquire lock
+bundleLock, err := lock.AcquireLock("/path/to/bundle")
+if err != nil {
+    // Lock is held by another process
+}
+defer bundleLock.Release()
+
+// Perform write operations...
+```
+
+### CLI Commands
+
+All CLI commands support `--json` output for programmatic use.
+
+#### create
+
+Create a new bundle from a directory.
+
+```bash
+bundle create <path> --title "My Bundle"
+```
+
+**JSON Output:**
+```json
+{
+  "status": "created",
+  "path": "/path/to/bundle",
+  "checksum": "abc123...",
+  "files": 42,
+  "size_bytes": 1024000,
+  "title": "My Bundle",
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+#### info
+
+Display bundle information.
+
+```bash
+bundle info <path> [--json]
+```
+
+**JSON Output:**
+```json
+{
+  "path": "/path/to/bundle",
+  "title": "My Bundle",
+  "checksum": "abc123...",
+  "files": 42,
+  "size_bytes": 1024000,
+  "created_at": "2024-01-15T10:30:00Z",
+  "author": "username",
+  "verified": true,
+  "tags": ["travel", "photos"],
+  "replicas": ["s3://bucket/path"]
+}
+```
+
+#### list
+
+List all files in a bundle.
+
+```bash
+bundle list <path> [--json]
+```
+
+**JSON Output:**
+```json
+{
+  "path": "/path/to/bundle",
+  "files": [
+    {
+      "path": "photo1.jpg",
+      "checksum": "abc123...",
+      "size_bytes": 2048000
+    }
+  ],
+  "total_files": 42,
+  "total_size": 1024000
+}
+```
+
+#### verify
+
+Verify bundle integrity by recomputing checksums.
+
+```bash
+bundle verify <path> [--json]
+```
+
+**JSON Output:**
+```json
+{
+  "status": "valid",
+  "files_checked": 42,
+  "last_verified": "2024-01-15T10:30:00Z",
+  "corrupted_files": []
+}
+```
+
+Or on failure:
+```json
+{
+  "status": "invalid",
+  "files_checked": 42,
+  "last_verified": "2024-01-15T10:30:00Z",
+  "corrupted_files": ["photo1.jpg", "document.pdf"]
+}
+```
+
+#### tag add
+
+Add tags to a bundle.
+
+```bash
+bundle tag add <path> <tag1> [<tag2>...]
+```
+
+**JSON Output:**
+```json
+{
+  "status": "added",
+  "path": "/path/to/bundle",
+  "tags": ["travel", "photos", "vacation"]
+}
+```
+
+#### tag remove
+
+Remove tags from a bundle.
+
+```bash
+bundle tag remove <path> <tag1> [<tag2>...]
+```
+
+**JSON Output:**
+```json
+{
+  "status": "removed",
+  "path": "/path/to/bundle",
+  "tags": ["vacation"]
+}
+```
+
+#### tag list
+
+List all tags on a bundle.
+
+```bash
+bundle tag list <path> [--json]
+```
+
+**JSON Output:**
+```json
+{
+  "path": "/path/to/bundle",
+  "tags": ["travel", "photos"]
+}
+```
+
+### Bundle Structure
+
+A bundle is a directory with the following structure:
+
+```
+my-bundle/
+├── .bundle/
+│   ├── META.json      # Metadata (title, author, checksum)
+│   ├── STATE.json     # Operational state (verified, replicas)
+│   ├── TAGS.txt       # Searchable tags (one per line)
+│   ├── SHA256SUM.txt  # File checksums
+│   └── .lock          # Lock file (temporary)
+├── file1.jpg
+├── file2.pdf
+└── documents/
+    └── file3.txt
+```
+
+### Exit Codes
+
+- `0` - Success
+- `1` - User error (invalid input, path not found, etc.)
+- `2` - System error (I/O error, JSON marshal error, etc.)
+
 ## Development
 
 See [quickstart.md](specs/001-bundle-core/quickstart.md) for development setup.

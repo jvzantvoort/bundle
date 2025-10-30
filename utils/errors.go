@@ -1,3 +1,21 @@
+// Package utils provides utility functions for CLI operations, error handling,
+// and output formatting.
+//
+// Standard error types for bundle operations. These errors map to CLI exit codes:
+//   - User errors (exit code 1): invalid usage, missing resources, corrupted bundle
+//   - System errors (exit code 2): I/O failures, permissions, system resources
+//
+// Example usage:
+//
+//	if !utils.IsBundleDir(path) {
+//	    return utils.ErrNotABundle
+//	}
+//
+//	// In CLI:
+//	if err != nil {
+//	    code := utils.ExitCodeFromError(err)
+//	    os.Exit(code)
+//	}
 package utils
 
 import "errors"
