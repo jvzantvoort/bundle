@@ -1,0 +1,23 @@
+Create a content-addressable bundle from a directory.
+
+This command scans the given directory, computes SHA256 checksums for each
+file, and writes immutable bundle metadata into a `.bundle` directory inside
+the target. The result is a self-contained, integrity-verified bundle that
+can be inspected with `bundle info` and verified with `bundle verify`.
+
+Examples:
+
+	bundle create /path/to/files --title "My Bundle"
+	bundle create /path/to/files -j           # create and print JSON summary
+
+Options:
+
+- --title, -t   Set a human-friendly title for the bundle.
+- --json, -j    Emit a machine-readable JSON summary on success.
+- --verbose, -v Enable verbose logging.
+
+Notes:
+
+The command will create a `.bundle` directory inside the provided path to
+store metadata (no files are moved). Use `bundle verify` to later check the
+integrity of the bundle contents.

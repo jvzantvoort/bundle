@@ -1,0 +1,29 @@
+Show detailed information about a bundle.
+
+Displays a human-readable summary of the bundle metadata, files and current
+state. Use this command to inspect the title, author, checksum, created
+timestamp, number of files and total size.
+
+Examples:
+
+	bundle info /path/to/bundle
+	bundle info /path/to/bundle -j    # print machine-readable JSON
+
+JSON output fields (when using `--json`):
+
+- `path` - absolute bundle path
+- `title` - bundle title (string)
+- `checksum` - SHA256 checksum of the bundle metadata
+- `files` - number of files recorded in the bundle
+- `size_bytes` - total size in bytes
+- `created_at` - RFC3339 timestamp when the bundle was created
+- `author` - author string from metadata
+- `verified` - boolean indicating last-known verification status
+- `tags` - array of normalized tags attached to the bundle
+- `replicas` - array of replica locations (if any)
+
+Notes:
+
+If the target path is not a bundle the command will return an error. Use
+`bundle create` to initialize a new bundle, and `bundle verify` to re-check
+the integrity of the bundle contents.
