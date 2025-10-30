@@ -50,18 +50,18 @@ func handleInfoCmd(cmd *cobra.Command, args []string) {
 	}
 
 	// Human-readable summary
-	log.Info("Bundle Information")
-	log.Info("------------------")
-	log.Infof("Path:     %s", b.Path)
+	log.Debug("Bundle Information")
+	log.Debug("------------------")
+	log.Debugf("Path:     %s", b.Path)
 	if b.Metadata != nil {
-		log.Infof("Title:    %s", b.Metadata.Title)
-		log.Infof("Checksum: %s", b.Metadata.BundleChecksum)
-		log.Infof("Author:   %s", b.Metadata.Author)
-		log.Infof("Created:  %s", b.Metadata.CreatedAt.Format("2006-01-02 15:04:05"))
+		log.Debugf("Title:    %s", b.Metadata.Title)
+		log.Debugf("Checksum: %s", b.Metadata.BundleChecksum)
+		log.Debugf("Author:   %s", b.Metadata.Author)
+		log.Debugf("Created:  %s", b.Metadata.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 	if b.State != nil {
-		log.Infof("Files:    %d", len(b.Files.Records))
-		log.Infof("Size:     %d", b.State.SizeBytes)
+		log.Debugf("Files:    %d", len(b.Files.Records))
+		log.Debugf("Size:     %d", b.State.SizeBytes)
 	}
 
 	if jsonOutput {

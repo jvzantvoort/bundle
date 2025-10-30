@@ -58,19 +58,19 @@ func handleCreateCmd(cmd *cobra.Command, args []string) {
 	}
 
 	// Print a human-readable summary similar to the CLI contract
-	log.Info("Bundle Created")
-	log.Info("--------------")
-	log.Infof("Path:     %s", b.Path)
+	log.Debug("Bundle Created")
+	log.Debug("--------------")
+	log.Debugf("Path:     %s", b.Path)
 	if b.Metadata != nil {
-		log.Infof("Checksum: %s", b.Metadata.BundleChecksum)
-		log.Infof("Title:    %s", b.Metadata.Title)
-		log.Infof("Created:  %s", b.Metadata.CreatedAt.Format("2006-01-02 15:04:05"))
+		log.Debugf("Checksum: %s", b.Metadata.BundleChecksum)
+		log.Debugf("Title:    %s", b.Metadata.Title)
+		log.Debugf("Created:  %s", b.Metadata.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 	if b.Files != nil {
-		log.Infof("Files:    %d", len(b.Files.Records))
+		log.Debugf("Files:    %d", len(b.Files.Records))
 	}
 	if b.State != nil {
-		log.Infof("Size:     %d bytes", b.State.SizeBytes)
+		log.Debugf("Size:     %d bytes", b.State.SizeBytes)
 	}
 
 	if jsonOutput {

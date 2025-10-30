@@ -18,7 +18,7 @@ import (
 
 // ListCmd represents the list command
 var ListCmd = &cobra.Command{
-    Use:   messages.GetUse("list"),
+    Use:   "list",
     Short: messages.GetShort("list"),
     Long:  messages.GetLong("list"),
     Run:   handleListCmd,
@@ -92,15 +92,13 @@ func handleListCmd(cmd *cobra.Command, args []string) {
     }
 
     // Human-readable table output
-    log.Info("Files in Bundle")
-    log.Info("---------------")
     table := utils.OutputTable(os.Stdout)
     table.Header("Filename", "Checksum", "Size")
     for _, e := range entries {
         table.Append([]string{e.Path, e.Checksum, formatBytes(e.Size)})
     }
     table.Render()
-    log.Infof("\nTotal: %d files, %s", len(entries), formatBytes(totalSize))
+    log.Debugf("\nTotal: %d files, %s", len(entries), formatBytes(totalSize))
 }
 
 // formatBytes formats bytes into human-friendly string (KB/MB/GB)

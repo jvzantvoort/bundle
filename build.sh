@@ -272,6 +272,10 @@ function action_install()
   local bindir
   bindir="$(go env GOBIN)"
 
+  if [[ -z "${bindir}" ]]; then
+    bindir="${HOME}/go/bin"
+  fi
+
   while read -r target
   do
     local dest

@@ -16,6 +16,11 @@ type Lock struct {
 func AcquireLock(bundlePath string) (*Lock, error) {
 	lockPath := filepath.Join(bundlePath, ".bundle", ".lock")
 
+	// Ensure the .bundle directory exists so OpenFile can create the lock
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0755); err != nil {
+		return nil, err
+	}
+
 	// Atomic create-if-not-exists
 	lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 	if err != nil {

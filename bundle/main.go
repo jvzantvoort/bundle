@@ -12,6 +12,7 @@ import (
 	"github.com/jvzantvoort/bundle/metadata"
 	"github.com/jvzantvoort/bundle/state"
 	"github.com/jvzantvoort/bundle/tag"
+	log "github.com/sirupsen/logrus"
 )
 
 // Bundle represents a complete bundle with all metadata and state
@@ -25,6 +26,9 @@ type Bundle struct {
 
 // Create initializes a new bundle from a directory
 func Create(path string, title string) (*Bundle, error) {
+	log.Debugf("Creating bundle at path: %s with title: %s", path, title)
+	defer log.Debugf("Bundle creation completed for path: %s", path)
+	
 	// Acquire lock
 	bundleLock, err := lock.AcquireLock(path)
 	if err != nil {

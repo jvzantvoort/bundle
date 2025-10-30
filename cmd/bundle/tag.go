@@ -51,8 +51,9 @@ func handleTagCmd(cmd *cobra.Command, args []string) {
 
 // tag add
 var tagAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add tags to a bundle",
+	Use:   messages.GetUse("tag_add"),
+	Short: messages.GetShort("tag_add"),
+	Long:  messages.GetLong("tag_add"),
 	Run:   handleTagAddCmd,
 }
 
@@ -72,6 +73,18 @@ func handleTagAddCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+	// Validate path exists and is a directory (user error if not)
+	if fi, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			log.Errorf("Path does not exist: %s", path)
+			os.Exit(1)
+		}
+		log.Errorf("System error: %v", err)
+		os.Exit(2)
+	} else if !fi.IsDir() {
+		log.Errorf("Path is not a directory: %s", path)
+		os.Exit(1)
+	}
 	tags := args[1:]
 
 	t, err := tag.Load(path)
@@ -100,7 +113,7 @@ func handleTagAddCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Info("Tags Added")
+	log.Debug("Tags Added")
 	// Print tags
 	for _, v := range t.List() {
 		fmt.Println(v)
@@ -109,8 +122,9 @@ func handleTagAddCmd(cmd *cobra.Command, args []string) {
 
 // tag remove
 var tagRemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Remove tags from a bundle",
+	Use:   messages.GetUse("tag_remove"),
+	Short: messages.GetShort("tag_remove"),
+	Long:  messages.GetLong("tag_remove"),
 	Run:   handleTagRemoveCmd,
 }
 
@@ -130,6 +144,18 @@ func handleTagRemoveCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+	// Validate path exists and is a directory (user error if not)
+	if fi, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			log.Errorf("Path does not exist: %s", path)
+			os.Exit(1)
+		}
+		log.Errorf("System error: %v", err)
+		os.Exit(2)
+	} else if !fi.IsDir() {
+		log.Errorf("Path is not a directory: %s", path)
+		os.Exit(1)
+	}
 	tags := args[1:]
 
 	t, err := tag.Load(path)
@@ -158,13 +184,14 @@ func handleTagRemoveCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Info("Tags Removed")
+	log.Debug("Tags Removed")
 }
 
 // tag list
 var tagListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List tags for a bundle",
+	Use:   messages.GetUse("tag_list"),
+	Short: messages.GetShort("tag_list"),
+	Long:  messages.GetLong("tag_list"),
 	Run:   handleTagListCmd,
 }
 
@@ -184,6 +211,18 @@ func handleTagListCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+	// Validate path exists and is a directory (user error if not)
+	if fi, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			log.Errorf("Path does not exist: %s", path)
+			os.Exit(1)
+		}
+		log.Errorf("System error: %v", err)
+		os.Exit(2)
+	} else if !fi.IsDir() {
+		log.Errorf("Path is not a directory: %s", path)
+		os.Exit(1)
+	}
 	t, err := tag.Load(path)
 	if err != nil {
 		log.Errorf("System error: %v", err)
@@ -204,7 +243,7 @@ func handleTagListCmd(cmd *cobra.Command, args []string) {
 	}
 
 	if len(t.Tags) == 0 {
-		log.Info("No tags")
+		log.Debug("No tags")
 		return
 	}
 
