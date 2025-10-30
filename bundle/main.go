@@ -16,11 +16,11 @@ import (
 
 // Bundle represents a complete bundle with all metadata and state
 type Bundle struct {
-	Path     string                  // Absolute path to bundle directory
-	Metadata *metadata.Metadata      // Loaded from META.json
-	State    *state.State            // Loaded from STATE.json
-	Tags     *tag.Tags               // Loaded from TAGS.txt
-	Files    *checksum.ChecksumFile  // Loaded from SHA256SUM.txt
+	Path     string                 // Absolute path to bundle directory
+	Metadata *metadata.Metadata     // Loaded from META.json
+	State    *state.State           // Loaded from STATE.json
+	Tags     *tag.Tags              // Loaded from TAGS.txt
+	Files    *checksum.ChecksumFile // Loaded from SHA256SUM.txt
 }
 
 // Create initializes a new bundle from a directory

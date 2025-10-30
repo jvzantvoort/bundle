@@ -1,5 +1,4 @@
 # Binaries and executables
-bundle
 *.exe
 *.exe~
 *.dll

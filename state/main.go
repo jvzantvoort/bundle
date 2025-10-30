@@ -9,10 +9,10 @@ import (
 
 // State represents the bundle operational state stored in .bundle/STATE.json
 type State struct {
-	Verified    bool      `json:"verified"`      // Last verification result
-	LastChecked time.Time `json:"last_checked"`  // Last verification timestamp
-	Replicas    []string  `json:"replicas"`      // Known replica locations
-	SizeBytes   int64     `json:"size_bytes"`    // Total bundle size (excluding .bundle/)
+	Verified    bool      `json:"verified"`     // Last verification result
+	LastChecked time.Time `json:"last_checked"` // Last verification timestamp
+	Replicas    []string  `json:"replicas"`     // Known replica locations
+	SizeBytes   int64     `json:"size_bytes"`   // Total bundle size (excluding .bundle/)
 }
 
 // Load reads state from .bundle/STATE.json
