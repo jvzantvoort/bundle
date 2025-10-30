@@ -4,9 +4,32 @@ import (
 	"bufio"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
+
+var tagPattern = regexp.MustCompile(`^[a-z0-9._-]{1,64}$`)
+
+// normalizeTag trims whitespace, lowercases and validates a tag.
+// Returns normalized tag and ok=true when valid.
+func normalizeTag(s string) (string, bool) {
+	t := strings.TrimSpace(s)
+	if t == "" {
+		return "", false
+	}
+	// Normalize to lowercase to make tags case-insensitive
+	t = strings.ToLower(t)
+	// Disallow whitespace inside tag
+	if strings.ContainsAny(t, " \t\n\r") {
+		return "", false
+	}
+	// Validate allowed characters and max length
+	if !tagPattern.MatchString(t) {
+		return "", false
+	}
+	return t, true
+}
 
 // Tags represents the collection of tags associated with a bundle
 type Tags struct {
@@ -27,10 +50,17 @@ func Load(bundlePath string) (*Tags, error) {
 
 	lines := strings.Split(string(data), "\n")
 	tags := []string{}
+	tagSet := make(map[string]bool)
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if trimmed != "" {
-			tags = append(tags, trimmed)
+		if trimmed == "" {
+			continue
+		}
+		if nt, ok := normalizeTag(trimmed); ok {
+			if !tagSet[nt] {
+				tags = append(tags, nt)
+				tagSet[nt] = true
+			}
 		}
 	}
 
@@ -65,11 +95,13 @@ func (t *Tags) Add(newTags ...string) {
 	}
 
 	for _, tag := range newTags {
-		trimmed := strings.TrimSpace(tag)
-		if trimmed != "" && !tagSet[trimmed] {
-			t.Tags = append(t.Tags, trimmed)
-			tagSet[trimmed] = true
+		if nt, ok := normalizeTag(tag); ok {
+			if !tagSet[nt] {
+				t.Tags = append(t.Tags, nt)
+				tagSet[nt] = true
+			}
 		}
+		// invalid tags are ignored silently; callers (CLI) should validate if they need stricter handling
 	}
 }
 
@@ -77,7 +109,9 @@ func (t *Tags) Add(newTags ...string) {
 func (t *Tags) Remove(removeTags ...string) {
 	removeSet := make(map[string]bool)
 	for _, tag := range removeTags {
-		removeSet[strings.TrimSpace(tag)] = true
+		if nt, ok := normalizeTag(tag); ok {
+			removeSet[nt] = true
+		}
 	}
 
 	filtered := []string{}

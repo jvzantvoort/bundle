@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/jvzantvoort/bundle/messages"
+	"github.com/jvzantvoort/bundle/bundle"
+	"github.com/jvzantvoort/bundle/utils"
 	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,5 +40,41 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 			log.Error(err)
 		}
 		os.Exit(1)
+	}
+
+	path := args[0]
+
+	verified, corrupted, err := bundle.Verify(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Errorf("directory does not exist: %s", path)
+			os.Exit(1)
+		}
+		log.Errorf("System error: %v", err)
+		os.Exit(2)
+	}
+
+	if verified {
+		log.Info("Bundle Integrity: VALID")
+	} else {
+		log.Info("Bundle Integrity: INVALID")
+	}
+
+	if jsonOutput {
+		out := map[string]interface{}{
+			"status":        "",
+			"files_checked": 0,
+			"last_verified": "",
+			"corrupted_files": corrupted,
+		}
+		if verified {
+			out["status"] = "valid"
+		} else {
+			out["status"] = "invalid"
+		}
+		if err := utils.OutputJSON(out); err != nil {
+			log.Errorf("failed to output json: %v", err)
+			os.Exit(2)
+		}
 	}
 }

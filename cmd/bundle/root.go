@@ -9,6 +9,7 @@ import (
 )
 
 var verbose bool
+var jsonOutput bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -45,4 +46,5 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+	rootCmd.PersistentFlags().BoolVarP(&jsonOutput, "json", "j", false, "Output JSON")
 }

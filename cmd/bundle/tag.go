@@ -9,6 +9,7 @@ import (
 
 	"github.com/jvzantvoort/bundle/messages"
 	"github.com/jvzantvoort/bundle/tag"
+	"github.com/jvzantvoort/bundle/utils"
 	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
 )
@@ -85,6 +86,20 @@ func handleTagAddCmd(cmd *cobra.Command, args []string) {
 		os.Exit(2)
 	}
 
+	jsonOut := jsonOutput
+	if jsonOut {
+		out := map[string]interface{}{
+			"status": "added",
+			"path":   path,
+			"tags":   t.List(),
+		}
+		if err := utils.OutputJSON(out); err != nil {
+			log.Errorf("failed to output json: %v", err)
+			os.Exit(2)
+		}
+		return
+	}
+
 	log.Info("Tags Added")
 	// Print tags
 	for _, v := range t.List() {
@@ -129,6 +144,20 @@ func handleTagRemoveCmd(cmd *cobra.Command, args []string) {
 		os.Exit(2)
 	}
 
+	jsonOut := jsonOutput
+	if jsonOut {
+		out := map[string]interface{}{
+			"status": "removed",
+			"path":   path,
+			"tags":   tags,
+		}
+		if err := utils.OutputJSON(out); err != nil {
+			log.Errorf("failed to output json: %v", err)
+			os.Exit(2)
+		}
+		return
+	}
+
 	log.Info("Tags Removed")
 }
 
@@ -159,6 +188,19 @@ func handleTagListCmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Errorf("System error: %v", err)
 		os.Exit(2)
+	}
+
+	jsonOut := jsonOutput
+	if jsonOut {
+		out := map[string]interface{}{
+			"path": path,
+			"tags": t.List(),
+		}
+		if err := utils.OutputJSON(out); err != nil {
+			log.Errorf("failed to output json: %v", err)
+			os.Exit(2)
+		}
+		return
 	}
 
 	if len(t.Tags) == 0 {

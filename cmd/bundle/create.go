@@ -8,6 +8,7 @@ import (
 
 	"github.com/jvzantvoort/bundle/messages"
 	"github.com/jvzantvoort/bundle/bundle"
+	"github.com/jvzantvoort/bundle/utils"
 	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
 )
@@ -70,5 +71,33 @@ func handleCreateCmd(cmd *cobra.Command, args []string) {
 	}
 	if b.State != nil {
 		log.Infof("Size:     %d bytes", b.State.SizeBytes)
+	}
+
+	if jsonOutput {
+		out := map[string]interface{}{
+			"status":     "created",
+			"path":       b.Path,
+			"checksum":   "",
+			"files":      0,
+			"size_bytes": 0,
+			"title":      "",
+			"created_at": "",
+		}
+		if b.Metadata != nil {
+			out["checksum"] = b.Metadata.BundleChecksum
+			out["title"] = b.Metadata.Title
+			out["created_at"] = b.Metadata.CreatedAt.UTC().Format("2006-01-02T15:04:05Z")
+		}
+		if b.Files != nil {
+			out["files"] = len(b.Files.Records)
+		}
+		if b.State != nil {
+			out["size_bytes"] = b.State.SizeBytes
+		}
+
+		if err := utils.OutputJSON(out); err != nil {
+			log.Errorf("failed to output json: %v", err)
+			os.Exit(2)
+		}
 	}
 }
