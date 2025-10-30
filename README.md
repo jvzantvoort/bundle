@@ -100,7 +100,7 @@ bundle import /path/to/bundle --pool backup
 bundle import /path/to/bundle --pool archive --move
 ```
 
-See [POOLS.md](POOLS.md) for complete pool documentation.
+See [POOLS.md](docs/POOLS.md) for complete pool documentation.
 
 ## Architecture
 
@@ -119,10 +119,30 @@ CLI commands in `cmd/` use dependency injection to call library functions.
 
 ## Documentation
 
-- [Quickstart Guide](specs/001-bundle-core/quickstart.md) - Developer onboarding
-- [CLI Commands](specs/001-bundle-core/contracts/cli-commands.md) - Complete CLI reference
-- [Pool Storage](POOLS.md) - Centralized storage guide
+📚 **[Complete Documentation](docs/README.md)** - Start here for comprehensive guides
+
+### Quick Links
+
+**User Documentation:**
+- [Examples & Workflows](docs/EXAMPLES.md) - Common usage patterns
+- [Pool Management](docs/POOLS.md) - Centralized storage guide
+- [Configuration & Debugging](docs/CONFIG_DEBUGGING.md) - Setup and troubleshooting
+- [Bundle Rename](docs/RENAME_UPDATE.md) - Update bundle titles
+
+**Developer Documentation:**
+- [API Reference](docs/API.md) - Complete Go package documentation
+- [Pool Implementation](docs/POOLS_IMPLEMENTATION.md) - Architecture details
+- [Code Quality](docs/GOLANGCI_LINT_FIXES.md) - Linting and best practices
+
+**Project Documentation:**
+- [Specification Updates](docs/SPEC_UPDATES.md) - Recent changes
+- [Development Summary](docs/SUMMARY.md) - Project status
+- [Improvements](docs/IMPROVEMENTS.md) - Future roadmap
+
+**Specifications:**
+- [Feature Spec](specs/001-bundle-core/spec.md) - Requirements and user stories
 - [Data Model](specs/001-bundle-core/data-model.md) - Entity definitions
+- [CLI Commands](specs/001-bundle-core/contracts/cli-commands.md) - Command contracts
 - [Implementation Plan](specs/001-bundle-core/plan.md) - Technical architecture
 
 ## API Documentation
