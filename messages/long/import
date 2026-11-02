@@ -6,12 +6,20 @@ ensuring content-addressable storage and automatic deduplication.
 By default, the bundle is copied to the pool. Use --move to remove the
 source bundle after successful import.
 
+Files the bundle was created to ignore are not copied. Any other unlisted file
+makes the import fail, unless --ignore accepts it; it is then not copied either.
+--ignore cannot leave out a file that is part of the bundle. --move is refused
+while ignored files exist, because it would delete them.
+
 Examples:
   # Copy bundle to default pool
   bundle import /path/to/bundle
 
   # Move bundle to specific pool
   bundle import /path/to/bundle --pool backup --move
+
+  # Leave a file out that was added after the bundle was created
+  bundle import /path/to/bundle --ignore SHA256SUM.txt
 
   # Import with JSON output
   bundle import /path/to/bundle --json

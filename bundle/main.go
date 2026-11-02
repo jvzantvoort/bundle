@@ -99,9 +99,15 @@ type Bundle struct {
 //   - error: lock errors, I/O errors, checksum computation errors,
 //     utils.ErrInvalidPath if path is not a directory, or
 //     utils.ErrBundleExists if path is already a bundle
-func Create(path string, title string) (*Bundle, error) {
+func Create(path string, title string, ignore ...string) (*Bundle, error) {
 	log.Debugf("Creating bundle at path: %s with title: %s", path, title)
 	defer log.Debugf("Bundle creation completed for path: %s", path)
+
+	// Fail before anything is written
+	ignore, err := checksum.NormalizeIgnore(ignore)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", utils.ErrInvalidPath, err)
+	}
 
 	// The directory must exist: creating it would turn a mistyped path into an
 	// empty bundle
@@ -139,7 +145,7 @@ func Create(path string, title string) (*Bundle, error) {
 
 	// Scan and compute checksums
 	files := &checksum.ChecksumFile{}
-	if err := files.Compute(path); err != nil {
+	if err := files.Compute(path, ignore...); err != nil {
 		return nil, fmt.Errorf("failed to compute checksums: %w", err)
 	}
 
@@ -160,6 +166,7 @@ func Create(path string, title string) (*Bundle, error) {
 		BundleChecksum: bundleChecksum,
 		Author:         author,
 		Version:        metadata.CurrentVersion,
+		Ignore:         ignore,
 	}
 
 	// Create state with size already computed during checksum scan
@@ -225,7 +232,7 @@ func Create(path string, title string) (*Bundle, error) {
 //     .bundle/SHA256SUM.txt is listed if it does not match the bundle checksum
 //   - error: utils.ErrNotABundle, utils.ErrIncompleteBundle,
 //     utils.ErrCorruptedBundle for unreadable metadata, or an I/O error
-func Verify(path string) (bool, []string, error) {
+func Verify(path string, ignore ...string) (bool, []string, error) {
 	// Check if .bundle exists
 	if _, err := os.Stat(filepath.Join(path, ".bundle")); os.IsNotExist(err) {
 		return false, nil, utils.ErrNotABundle
@@ -247,7 +254,7 @@ func Verify(path string) (bool, []string, error) {
 	}
 
 	// Verify
-	corrupted, err := files.Verify(path)
+	corrupted, err := files.Verify(path, append(meta.Ignore, ignore...)...)
 	if err != nil {
 		return false, nil, err
 	}

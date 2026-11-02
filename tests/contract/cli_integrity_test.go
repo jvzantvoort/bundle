@@ -108,3 +108,33 @@ func TestCLI_Version(t *testing.T) {
 		t.Errorf("--version output = %q", out)
 	}
 }
+
+func TestCLI_Ignore(t *testing.T) {
+	bin, repoRoot := buildCLI(t)
+	dir := filepath.Join(t.TempDir(), "data")
+	writeFile(t, filepath.Join(dir, "keep.txt"), "keep")
+	writeFile(t, filepath.Join(dir, "SHA256SUM.txt"), "other")
+	writeFile(t, filepath.Join(dir, "sub", "SHA256SUM.txt"), "other")
+
+	if _, stderr, exit, _ := runCmd(bin, repoRoot, "create", dir, "--ignore", "["); exit != 1 {
+		t.Errorf("create with a bad pattern: exit = %d, want 1: %s", exit, stderr)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".bundle")); !os.IsNotExist(err) {
+		t.Errorf("create with a bad pattern left .bundle behind: %v", err)
+	}
+
+	out, stderr, exit, _ := runCmd(bin, repoRoot, "create", dir, "-i", "SHA256SUM.txt", "-j")
+	if exit != 0 {
+		t.Fatalf("create exit = %d: %s", exit, stderr)
+	}
+	var resp map[string]interface{}
+	if err := json.Unmarshal([]byte(extractJSON(out)), &resp); err != nil {
+		t.Fatalf("invalid json: %v: %s", err, out)
+	}
+	if resp["files"] != float64(1) {
+		t.Errorf("files = %v, want 1", resp["files"])
+	}
+	if out, _, exit, _ := runCmd(bin, repoRoot, "verify", dir); exit != 0 {
+		t.Errorf("verify exit = %d: %s", exit, out)
+	}
+}

@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(ImportCmd)
 	ImportCmd.Flags().StringP("pool", "p", "default", "pool name to import to")
 	ImportCmd.Flags().BoolP("move", "m", false, "move bundle instead of copy")
+	ImportCmd.Flags().StringArrayP("ignore", "i", nil, "accept unlisted files matching this pattern and leave them out of the pool (repeatable)")
 	addRemoteFlags(ImportCmd)
 }
 
@@ -46,10 +47,15 @@ func handleImportCmd(cmd *cobra.Command, args []string) {
 	bundlePath := args[0]
 	poolName, _ := cmd.Flags().GetString("pool")
 	moveFlag, _ := cmd.Flags().GetBool("move")
+	ignore, _ := cmd.Flags().GetStringArray("ignore")
 
 	if remoteName != "" {
 		if moveFlag {
 			log.Error("--move cannot be used with --remote")
+			os.Exit(1)
+		}
+		if len(ignore) > 0 {
+			log.Error("--ignore cannot be used with --remote")
 			os.Exit(1)
 		}
 		remoteImport(bundlePath, poolName)
@@ -64,7 +70,7 @@ func handleImportCmd(cmd *cobra.Command, args []string) {
 	}
 
 	// Import bundle
-	if err := p.Import(bundlePath, moveFlag); err != nil {
+	if err := p.Import(bundlePath, moveFlag, ignore...); err != nil {
 		log.Errorf("Import failed: %v", err)
 		os.Exit(utils.ExitCodeFromError(err))
 	}
