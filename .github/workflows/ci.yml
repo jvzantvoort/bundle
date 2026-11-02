@@ -43,8 +43,8 @@ jobs:
       - name: Run tests
         run: go test -race ./...
 
-      - name: Build CLI
-        run: go build ./cmd/bundle
+      - name: Build
+        run: go build ./...
 
   checks:
     runs-on: ubuntu-latest

@@ -159,9 +159,11 @@ func TestManifest_RoundTripAndSHA256Sum(t *testing.T) {
 		t.Errorf("bundle checksum %s is not the SHA256 of the manifest", got)
 	}
 
-	// The manifest stays compatible with sha256sum(1)
-	if _, err := exec.LookPath("sha256sum"); err != nil {
-		t.Skip("sha256sum not installed")
+	// The manifest stays compatible with GNU sha256sum(1). The BSD version on
+	// macOS rejects the escaped lines.
+	version, err := exec.Command("sha256sum", "--version").CombinedOutput()
+	if err != nil || !strings.Contains(string(version), "GNU coreutils") {
+		t.Skip("GNU sha256sum not installed")
 	}
 	cmd := exec.Command("sha256sum", "--check", "--strict", ".bundle/SHA256SUM.txt")
 	cmd.Dir = dir
