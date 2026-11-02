@@ -4,6 +4,7 @@ Copyright © 2025 John van Zantvoort <john@vanzantvoort.org>
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jvzantvoort/bundle/messages"
@@ -56,21 +57,6 @@ func handleInfoCmd(cmd *cobra.Command, args []string) {
 		os.Exit(2)
 	}
 
-	// Human-readable summary
-	log.Debug("Bundle Information")
-	log.Debug("------------------")
-	log.Debugf("Path:     %s", b.Path)
-	if b.Metadata != nil {
-		log.Debugf("Title:    %s", b.Metadata.Title)
-		log.Debugf("Checksum: %s", b.Metadata.BundleChecksum)
-		log.Debugf("Author:   %s", b.Metadata.Author)
-		log.Debugf("Created:  %s", b.Metadata.CreatedAt.Format("2006-01-02 15:04:05"))
-	}
-	if b.State != nil {
-		log.Debugf("Files:    %d", len(b.Files.Records))
-		log.Debugf("Size:     %d", b.State.SizeBytes)
-	}
-
 	if jsonOutput {
 		out := map[string]interface{}{
 			"path":       b.Path,
@@ -102,5 +88,19 @@ func handleInfoCmd(cmd *cobra.Command, args []string) {
 			log.Errorf("failed to output json: %v", err)
 			os.Exit(2)
 		}
+		return
+	}
+
+	// Human-readable summary
+	fmt.Printf("Path:     %s\n", b.Path)
+	if b.Metadata != nil {
+		fmt.Printf("Title:    %s\n", b.Metadata.Title)
+		fmt.Printf("Checksum: %s\n", b.Metadata.BundleChecksum)
+		fmt.Printf("Author:   %s\n", b.Metadata.Author)
+		fmt.Printf("Created:  %s\n", b.Metadata.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"))
+	}
+	if b.State != nil {
+		fmt.Printf("Files:    %d\n", len(b.Files.Records))
+		fmt.Printf("Size:     %s\n", formatBytes(b.State.SizeBytes))
 	}
 }

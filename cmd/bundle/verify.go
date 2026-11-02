@@ -8,6 +8,8 @@ import (
 
 	"github.com/jvzantvoort/bundle/messages"
 	"github.com/jvzantvoort/bundle/bundle"
+	"github.com/jvzantvoort/bundle/checksum"
+	"github.com/jvzantvoort/bundle/state"
 	"github.com/jvzantvoort/bundle/utils"
 	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
@@ -71,11 +73,22 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 	}
 
 	if jsonOutput {
+		if corrupted == nil {
+			corrupted = []string{}
+		}
 		out := map[string]interface{}{
-			"status":        "",
-			"files_checked": 0,
-			"last_verified": "",
+			"status":          "",
+			"files_checked":   0,
+			"last_verified":   "",
 			"corrupted_files": corrupted,
+		}
+		// Read these on their own: a problem elsewhere in the bundle must not hide the result
+		files := &checksum.ChecksumFile{}
+		if err := files.Load(path); err == nil {
+			out["files_checked"] = len(files.Records)
+		}
+		if st, err := state.Load(path); err == nil {
+			out["last_verified"] = st.LastChecked.UTC().Format("2006-01-02T15:04:05Z")
 		}
 		if verified {
 			out["status"] = "valid"

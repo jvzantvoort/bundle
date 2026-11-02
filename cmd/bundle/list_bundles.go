@@ -26,6 +26,7 @@ var ListBundlesCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(ListBundlesCmd)
 	ListBundlesCmd.Flags().StringP("pool", "p", "default", "pool name to list bundles from")
+	ListBundlesCmd.Flags().BoolP("full", "f", false, "show the full checksum")
 	addRemoteFlags(ListBundlesCmd)
 }
 
@@ -37,6 +38,7 @@ func handleListBundlesCmd(cmd *cobra.Command, args []string) {
 	defer log.Debugf("%s: end", cmd.Use)
 
 	poolName, _ := cmd.Flags().GetString("pool")
+	full, _ := cmd.Flags().GetBool("full")
 
 	if remoteName != "" {
 		if cmd.Flags().Changed("pool") {
@@ -107,8 +109,12 @@ func handleListBundlesCmd(cmd *cobra.Command, args []string) {
 	table.Header("Checksum", "Title", "Author", "Created")
 
 	for _, meta := range bundles {
+		sum := meta.BundleChecksum
+		if !full {
+			sum = sum[:12] + "..." // Truncate checksum
+		}
 		_ = table.Append([]string{
-			meta.BundleChecksum[:12] + "...", // Truncate checksum
+			sum,
 			meta.Title,
 			meta.Author,
 			meta.CreatedAt.Format("2006-01-02 15:04"),

@@ -2,12 +2,14 @@ package contract_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // testBinPath returns where to build the CLI in dir. Windows only runs files with
@@ -73,6 +75,54 @@ func TestCLI_VerifyExitCodes(t *testing.T) {
 	if _, _, exit, _ := runCmd(bin, repoRoot, "verify", t.TempDir()); exit != 1 {
 		t.Errorf("verify of a non-bundle: exit = %d, want 1", exit)
 	}
+}
+
+func TestCLI_LocalInfoAndVerifyOutput(t *testing.T) {
+	bin, repoRoot := buildCLI(t)
+	dir := filepath.Join(t.TempDir(), "data")
+	writeFile(t, filepath.Join(dir, "a.txt"), "a")
+	writeFile(t, filepath.Join(dir, "sub", "b.txt"), "b")
+
+	if _, stderr, exit, _ := runCmd(bin, repoRoot, "create", dir, "--title", "Shown title"); exit != 0 {
+		t.Fatalf("create exit = %d: %s", exit, stderr)
+	}
+
+	out, _, exit, _ := runCmd(bin, repoRoot, "info", dir)
+	if exit != 0 {
+		t.Fatalf("info exit = %d: %s", exit, out)
+	}
+	for _, want := range []string{"Title:    Shown title", "Files:    2"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("info output misses %q: %s", want, out)
+		}
+	}
+	if out, _, _, _ := runCmd(bin, repoRoot, "info", dir, "-j"); strings.Contains(out, "Title:    ") {
+		t.Errorf("info -j also printed the summary: %s", out)
+	}
+
+	check := func(wantStatus string, wantExit, wantCorrupted int) {
+		t.Helper()
+		out, _, exit, _ := runCmd(bin, repoRoot, "verify", dir, "-j")
+		if exit != wantExit {
+			t.Fatalf("verify exit = %d, want %d: %s", exit, wantExit, out)
+		}
+		var resp map[string]interface{}
+		if err := json.Unmarshal([]byte(extractJSON(out)), &resp); err != nil {
+			t.Fatalf("invalid json: %v: %s", err, out)
+		}
+		if resp["status"] != wantStatus || resp["files_checked"] != float64(2) {
+			t.Errorf("status = %v, files_checked = %v", resp["status"], resp["files_checked"])
+		}
+		if checked, err := time.Parse(time.RFC3339, fmt.Sprint(resp["last_verified"])); err != nil || time.Since(checked) > time.Hour {
+			t.Errorf("last_verified = %v", resp["last_verified"])
+		}
+		if corrupted, ok := resp["corrupted_files"].([]interface{}); !ok || len(corrupted) != wantCorrupted {
+			t.Errorf("corrupted_files = %v, want %d entries", resp["corrupted_files"], wantCorrupted)
+		}
+	}
+	check("valid", 0, 0)
+	writeFile(t, filepath.Join(dir, "a.txt"), "changed")
+	check("invalid", 1, 1)
 }
 
 func TestCLI_CreateRefusals(t *testing.T) {
