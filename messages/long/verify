@@ -1,2 +1,5 @@
 # Verify all file checksums
 bundle verify /path/to/bundle
+
+# Verify a bundle on a server; the server recomputes the checksums
+bundle verify --remote origin <checksum>

@@ -102,6 +102,48 @@ bundle import /path/to/bundle --pool archive --move
 
 See [POOLS.md](POOLS.md) for complete pool documentation.
 
+## Remote Servers
+
+Commands can work on a Bundle Server, whose API is described in
+[openapi.yaml](openapi.yaml), instead of the local filesystem. Configure a server
+in `~/.config/bundle/config.yaml`; the `url` includes the API root:
+
+```yaml
+default_remote: origin  # used by push when --remote is not given
+remotes:
+  origin:
+    url: https://bundles.example.org/api/v1
+    token: secret       # or set BUNDLE_TOKEN, which applies to every remote
+    pool: default       # pool on the server; --remote-pool overrides it
+```
+
+With `--remote`, the path argument of a command becomes a bundle checksum:
+
+```bash
+bundle push /path/to/bundle                          # upload a local bundle
+bundle list_bundles --remote origin                  # shows full checksums
+bundle info --remote origin <checksum>
+bundle list --remote origin <checksum>
+bundle verify --remote origin <checksum>             # the server recomputes the checksums
+bundle rename --remote origin <checksum> "New title"
+bundle tag add --remote origin <checksum> <tag>...
+bundle tag remove --remote origin <checksum> <tag>...
+bundle tag list --remote origin <checksum>
+bundle migrate --remote origin [<checksum>]          # no checksum: all version 1 bundles
+bundle import --remote origin <checksum> --pool backup  # download into a local pool
+```
+
+`--pool` always means a local pool and `--remote-pool` a pool on the server. Only
+`push` uses `default_remote`; every other command stays local without `--remote`.
+
+Downloads do not trust the server: the manifest must hash to the requested checksum
+and stay inside the bundle, each file must match its entry, and the bundle only
+appears in the pool after passing verification. A failed download starts over.
+
+The token goes to whichever URL the configuration names. `./config.yaml` is read
+when neither `~/.config/bundle/config.yaml` nor `/etc/bundle/config.yaml` exists, so
+with `BUNDLE_TOKEN` set, do not run remote commands in a directory you do not trust.
+
 ## Architecture
 
 Bundle Library follows a library-first architecture with independent components:
@@ -446,6 +488,33 @@ but must be migrated before `import`.
 bundle migrate <path>
 bundle migrate --pool <name>   # also renames each directory to its new checksum
 ```
+
+#### push
+
+Upload a local bundle to a [Bundle Server](#remote-servers).
+
+```bash
+bundle push <path> [--remote <name>] [--remote-pool <name>] [--json]
+```
+
+**JSON Output:**
+```json
+{
+  "status": "pushed",
+  "path": "/path/to/bundle",
+  "checksum": "a1b2c3d4...",
+  "files": 42,
+  "size_bytes": 1024000,
+  "remote": "origin",
+  "pool": "default"
+}
+```
+
+The bundle is verified first. An interrupted push can be run again and sends only
+the files the server still misses. If the server already holds the bundle, nothing
+is uploaded and `status` is `exists`; its title and tags on the server stay as they
+are. Version 1 bundles must be migrated first, and the API does not accept bundles
+without files.
 
 #### tag add
 

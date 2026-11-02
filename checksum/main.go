@@ -73,6 +73,15 @@ type ChecksumFile struct {
 	TotalSize int64 // Total size of all files in bytes
 }
 
+// ValidSHA256 reports whether s is a lowercase hexadecimal SHA256 checksum.
+func ValidSHA256(s string) bool {
+	if len(s) != sha256.Size*2 || strings.ToLower(s) != s {
+		return false
+	}
+	_, err := hex.DecodeString(s)
+	return err == nil
+}
+
 // ComputeBundleChecksum generates a deterministic bundle checksum from records.
 //
 // Algorithm:

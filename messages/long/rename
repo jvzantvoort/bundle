@@ -18,3 +18,7 @@ Output:
 Note:
   Only the title field is modified. All other metadata (checksum,
   author, creation date) remains unchanged.
+
+Remote:
+  # Rename a bundle on a server
+  bundle rename --remote origin <checksum> "New title"

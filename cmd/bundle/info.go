@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(InfoCmd)
 	InfoCmd.Flags().StringP("tag", "T", "", "mark every line with this tag")
 	InfoCmd.Flags().StringP("title", "t", "", "log the contents of this file")
+	addRemoteFlags(InfoCmd)
 }
 
 func handleInfoCmd(cmd *cobra.Command, args []string) {
@@ -43,6 +44,12 @@ func handleInfoCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+
+	if remoteName != "" {
+		remoteInfo(path)
+		return
+	}
+
 	b, err := bundle.Load(path)
 	if err != nil {
 		log.Errorf("System error: %v", err)

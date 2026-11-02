@@ -1,0 +1,28 @@
+Upload a local bundle to a pool on a Bundle Server.
+
+The bundle is verified first, and the server verifies every file before it
+publishes the bundle, so a failed push never leaves a partial bundle on the server.
+
+A push that is interrupted can be run again, and sends only the files the server
+still misses. If the server already holds the bundle nothing is uploaded: its title
+and tags on the server stay as they are, and the push succeeds with status "exists".
+
+Version 1 bundles must be migrated first. Bundles without files cannot be pushed.
+
+Examples:
+  # Push to the remote named by default_remote
+  bundle push /path/to/bundle
+
+  # Push to a specific pool on a specific remote
+  bundle push /path/to/bundle --remote origin --remote-pool archive
+
+Configuration:
+  Remotes are configured in ~/.config/bundle/config.yaml. The url includes the
+  API root. BUNDLE_TOKEN in the environment overrides the token.
+
+  default_remote: origin
+  remotes:
+    origin:
+      url: https://bundles.example.org/api/v1
+      token: secret
+      pool: default

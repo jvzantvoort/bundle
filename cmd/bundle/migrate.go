@@ -25,6 +25,7 @@ var MigrateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(MigrateCmd)
 	MigrateCmd.Flags().StringP("pool", "p", "", "migrate all bundles in this pool")
+	addRemoteFlags(MigrateCmd)
 }
 
 func handleMigrateCmd(cmd *cobra.Command, args []string) {
@@ -35,6 +36,15 @@ func handleMigrateCmd(cmd *cobra.Command, args []string) {
 	defer log.Debugf("%s: end", cmd.Use)
 
 	poolName, _ := cmd.Flags().GetString("pool")
+
+	if remoteName != "" {
+		if poolName != "" || len(args) > 1 {
+			log.Error("Usage: bundle migrate --remote <name> [--remote-pool <name>] [<checksum>]")
+			os.Exit(1)
+		}
+		remoteMigrate(args)
+		return
+	}
 
 	if (poolName == "") == (len(args) == 0) || len(args) > 1 {
 		log.Error("Usage: bundle migrate <path> | bundle migrate --pool <name>")

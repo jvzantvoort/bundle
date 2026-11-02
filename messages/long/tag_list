@@ -1,0 +1,4 @@
+
+Remote:
+  # List the tags of a bundle on a server
+  bundle tag list --remote origin <checksum>

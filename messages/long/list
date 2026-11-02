@@ -1,0 +1,4 @@
+
+Remote:
+  # List the files of a bundle on a server
+  bundle list --remote origin <checksum>

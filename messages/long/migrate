@@ -18,3 +18,9 @@ Examples:
 
   # Migrate all bundles in a pool
   bundle migrate --pool default
+
+  # Migrate a bundle on a server; the checksum changes
+  bundle migrate --remote origin <checksum>
+
+  # Migrate all version 1 bundles in a pool on a server
+  bundle migrate --remote origin --remote-pool archive

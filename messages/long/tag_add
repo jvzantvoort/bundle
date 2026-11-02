@@ -1,0 +1,4 @@
+
+Remote:
+  # Add tags to a bundle on a server
+  bundle tag add --remote origin <checksum> <tag> [<tag>...]

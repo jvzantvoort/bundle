@@ -27,3 +27,7 @@ Notes:
 If the target path is not a bundle the command will return an error. Use
 `bundle create` to initialize a new bundle, and `bundle verify` to re-check
 the integrity of the bundle contents.
+
+Remote:
+  # Show a bundle on a server
+  bundle info --remote origin <checksum>

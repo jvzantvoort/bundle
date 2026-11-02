@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(VerifyCmd)
 	VerifyCmd.Flags().StringP("tag", "T", "", "mark every line with this tag")
 	VerifyCmd.Flags().StringP("title", "t", "", "log the contents of this file")
+	addRemoteFlags(VerifyCmd)
 }
 
 func handleVerifyCmd(cmd *cobra.Command, args []string) {
@@ -43,6 +44,11 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+
+	if remoteName != "" {
+		remoteVerify(path)
+		return
+	}
 
 	verified, corrupted, err := bundle.Verify(path)
 	if err != nil {

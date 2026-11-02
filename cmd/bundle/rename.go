@@ -35,6 +35,7 @@ var RenameCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(RenameCmd)
+	addRemoteFlags(RenameCmd)
 }
 
 // handleRenameCmd processes the rename command.
@@ -59,6 +60,11 @@ func handleRenameCmd(cmd *cobra.Command, args []string) {
 
 	path := args[0]
 	newTitle := args[1]
+
+	if remoteName != "" {
+		remoteRename(path, newTitle)
+		return
+	}
 
 	log.Debugf("Updating title for bundle: %s", path)
 	log.Debugf("New title: %s", newTitle)

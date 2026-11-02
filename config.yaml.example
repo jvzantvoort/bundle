@@ -19,5 +19,15 @@ pools:
     root: /archive/bundles
     title: Archive Pool
 
+# Remote Bundle Servers, used with --remote and by push
+# The url includes the API root. BUNDLE_TOKEN in the environment overrides token.
+# Prefer https: a token sent over http can be read on the network.
+default_remote: origin  # Used by push when --remote is not given
+remotes:
+  origin:
+    url: https://bundles.example.org/api/v1
+    token: replace-me
+    pool: default  # Pool on the server; --remote-pool overrides it
+
 # Logging configuration
 log_level: info  # Options: debug, info, warn, error

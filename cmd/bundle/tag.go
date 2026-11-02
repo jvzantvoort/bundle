@@ -31,6 +31,9 @@ func init() {
 	TagCmd.AddCommand(tagAddCmd)
 	TagCmd.AddCommand(tagRemoveCmd)
 	TagCmd.AddCommand(tagListCmd)
+	addRemoteFlags(tagAddCmd)
+	addRemoteFlags(tagRemoveCmd)
+	addRemoteFlags(tagListCmd)
 }
 
 func handleTagCmd(cmd *cobra.Command, args []string) {
@@ -73,6 +76,10 @@ func handleTagAddCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+	if remoteName != "" {
+		remoteTagAdd(path, args[1:])
+		return
+	}
 	// Validate path exists and is a directory (user error if not)
 	if fi, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
@@ -144,6 +151,10 @@ func handleTagRemoveCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+	if remoteName != "" {
+		remoteTagRemove(path, args[1:])
+		return
+	}
 	// Validate path exists and is a directory (user error if not)
 	if fi, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
@@ -211,6 +222,10 @@ func handleTagListCmd(cmd *cobra.Command, args []string) {
 	}
 
 	path := args[0]
+	if remoteName != "" {
+		remoteTagList(path)
+		return
+	}
 	// Validate path exists and is a directory (user error if not)
 	if fi, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
