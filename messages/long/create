@@ -9,10 +9,12 @@ Examples:
 
 	bundle create /path/to/files --title "My Bundle"
 	bundle create /path/to/files -j           # create and print JSON summary
+	bundle create /path/to/files -i SHA256SUM.txt -i '*.tmp'
 
 Options:
 
 - --title, -t   Set a human-friendly title for the bundle.
+- --ignore, -i  Leave out matching files and directories (repeatable).
 - --json, -j    Emit a machine-readable JSON summary on success.
 - --verbose, -v Enable verbose logging.
 
@@ -21,3 +23,11 @@ Notes:
 The command will create a `.bundle` directory inside the provided path to
 store metadata (no files are moved). Use `bundle verify` to later check the
 integrity of the bundle contents.
+
+Ignored files stay where they are, but are not part of the bundle: they are not
+in the checksum and are not pushed or imported. The patterns are stored in
+.bundle/META.json, so `bundle verify` accepts these files later on.
+
+A pattern without a slash matches a name at any depth, and one with a slash a
+path from the bundle root; `/name` matches in the root only. `*` and `?` work
+within one path component. Ignoring a directory ignores everything below it.

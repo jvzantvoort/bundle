@@ -381,8 +381,21 @@ All CLI commands support `--json` output for programmatic use.
 Create a new bundle from a directory.
 
 ```bash
-bundle create <path> --title "My Bundle"
+bundle create <path> --title "My Bundle" [--ignore <pattern>]...
 ```
+
+`-i, --ignore` leaves out matching files and directories, and can be repeated:
+
+```bash
+bundle create <path> --ignore SHA256SUM.txt --ignore '*.tmp' --ignore docs/draft
+```
+
+A pattern without a slash matches a name at any depth, one with a slash a path from
+the bundle root, and `/name` a name in the root only. Ignored files stay in the
+directory but are not part of the bundle: they are not in the checksum and are not
+pushed or imported. The patterns are stored in `.bundle/META.json`, so `verify`
+accepts these files later on. The checksum does not cover that list, and files in
+the manifest are always checked.
 
 **JSON Output:**
 ```json

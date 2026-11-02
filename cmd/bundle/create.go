@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(CreateCmd)
 	CreateCmd.Flags().StringP("tag", "T", "", "mark every line with this tag")
 	CreateCmd.Flags().StringP("title", "t", "", "log the contents of this file")
+	CreateCmd.Flags().StringArrayP("ignore", "i", nil, "leave out files and directories matching this pattern (repeatable)")
 }
 
 func handleCreateCmd(cmd *cobra.Command, args []string) {
@@ -45,7 +46,9 @@ func handleCreateCmd(cmd *cobra.Command, args []string) {
 	path := args[0]
 	title := GetString(*cmd, "title")
 
-	b, err := bundle.Create(path, title)
+	ignore, _ := cmd.Flags().GetStringArray("ignore")
+
+	b, err := bundle.Create(path, title, ignore...)
 	if err != nil {
 		// Distinguish common user errors vs system errors where possible
 		if os.IsNotExist(err) {

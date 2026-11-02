@@ -58,9 +58,10 @@ const (
 //	  "version": 2
 //	}
 type Metadata struct {
-	Title          string    `json:"title"`           // Human-readable name
-	CreatedAt      time.Time `json:"created_at"`      // ISO 8601 timestamp
-	BundleChecksum string    `json:"bundle_checksum"` // SHA256 of the file manifest
-	Author         string    `json:"author"`          // System username
-	Version        int       `json:"version"`         // Metadata schema version
+	Title          string    `json:"title"`            // Human-readable name
+	CreatedAt      time.Time `json:"created_at"`       // ISO 8601 timestamp
+	BundleChecksum string    `json:"bundle_checksum"`  // SHA256 of the file manifest
+	Author         string    `json:"author"`           // System username
+	Version        int       `json:"version"`          // Metadata schema version
+	Ignore         []string  `json:"ignore,omitempty"` // Patterns of files that are not part of the bundle
 }

@@ -189,6 +189,35 @@ func TestPushResumesAfterConnectionLoss(t *testing.T) {
 	}
 }
 
+func TestPushLeavesOutIgnoredFiles(t *testing.T) {
+	server := newServer(t)
+	client := newClient(t, server)
+	dir := filepath.Join(t.TempDir(), "data")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for name, data := range map[string]string{"keep.txt": "keep", "SHA256SUM.txt": "ignored"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(data), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := bundle.Create(dir, "Title", "SHA256SUM.txt"); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := client.Push(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored := server.Get("default", result.Checksum)
+	if stored == nil {
+		t.Fatal("bundle not on the server")
+	}
+	if _, ok := stored.Files["SHA256SUM.txt"]; ok || len(stored.Files) != 1 {
+		t.Errorf("stored files = %v", stored.Files)
+	}
+}
+
 func TestPushDoesNotDependOnMissingBundleStatus(t *testing.T) {
 	server := newServer(t)
 	client := newClient(t, server)

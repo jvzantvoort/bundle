@@ -53,7 +53,12 @@ bundle import <path> [flags]
 
 - `-p, --pool <name>` - Pool name (default: "default")
 - `-m, --move` - Move bundle instead of copy
+- `-i, --ignore <pattern>` - Accept unlisted files that match and leave them out of the pool copy (repeatable)
 - `--json` - Output in JSON format
+
+Files the bundle was created to ignore (`bundle create --ignore`) are never copied.
+`--ignore` cannot leave out a file that is part of the bundle, and `--move` is
+refused while ignored files exist, because it would delete them.
 
 #### Examples
 
@@ -63,6 +68,9 @@ bundle import /path/to/bundle
 
 # Move bundle to backup pool
 bundle import /path/to/bundle --pool backup --move
+
+# Leave out a file that was added after the bundle was created
+bundle import /path/to/bundle --ignore SHA256SUM.txt
 
 # Import with JSON output
 bundle import /path/to/bundle --json

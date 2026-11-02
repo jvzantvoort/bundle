@@ -344,14 +344,19 @@ func (cf *ChecksumFile) Save(bundlePath string) error {
 //
 // Parameters:
 //   - bundlePath: absolute or relative path to the directory to scan
+//   - ignore: patterns from NormalizeIgnore; matching files are left out
 //
 // Returns:
 //   - error: if directory cannot be walked or checksums cannot be computed
-func (cf *ChecksumFile) Compute(bundlePath string) error {
+func (cf *ChecksumFile) Compute(bundlePath string, ignore ...string) error {
 	cf.Records = []ChecksumRecord{}
 	cf.TotalSize = 0
 
 	return walkFiles(bundlePath, func(path, relPath string, info fs.FileInfo) error {
+		if Ignored(ignore, relPath) {
+			return nil
+		}
+
 		// Compute checksum
 		checksum, err := ComputeFileSHA256(path)
 		if err != nil {
@@ -395,17 +400,19 @@ func (cf *ChecksumFile) Compute(bundlePath string) error {
 //
 // Parameters:
 //   - bundlePath: absolute or relative path to the bundle directory
+//   - ignore: patterns from NormalizeIgnore; matching unlisted files are accepted,
+//     listed files are always checked
 //
 // Returns:
 //   - []string: sorted relative paths of corrupted, missing or unlisted files
 //   - error: if checksums cannot be computed or files cannot be read
-func (cf *ChecksumFile) Verify(bundlePath string) ([]string, error) {
+func (cf *ChecksumFile) Verify(bundlePath string, ignore ...string) ([]string, error) {
 	corrupted, err := cf.VerifyRecords(bundlePath)
 	if err != nil {
 		return nil, err
 	}
 
-	untracked, err := cf.Untracked(bundlePath)
+	untracked, err := cf.Untracked(bundlePath, ignore...)
 	if err != nil {
 		return nil, err
 	}
@@ -455,11 +462,12 @@ func (cf *ChecksumFile) VerifyRecords(bundlePath string) ([]string, error) {
 //
 // Parameters:
 //   - bundlePath: absolute or relative path to the bundle directory
+//   - ignore: patterns from NormalizeIgnore; matching files are not reported
 //
 // Returns:
 //   - []string: relative paths of files not listed in the manifest
 //   - error: if the directory cannot be walked
-func (cf *ChecksumFile) Untracked(bundlePath string) ([]string, error) {
+func (cf *ChecksumFile) Untracked(bundlePath string, ignore ...string) ([]string, error) {
 	tracked := make(map[string]struct{}, len(cf.Records))
 	for _, record := range cf.Records {
 		tracked[record.FilePath] = struct{}{}
@@ -467,7 +475,7 @@ func (cf *ChecksumFile) Untracked(bundlePath string) ([]string, error) {
 
 	untracked := []string{}
 	err := walkFiles(bundlePath, func(_, relPath string, _ fs.FileInfo) error {
-		if _, ok := tracked[relPath]; !ok {
+		if _, ok := tracked[relPath]; !ok && !Ignored(ignore, relPath) {
 			untracked = append(untracked, relPath)
 		}
 		return nil

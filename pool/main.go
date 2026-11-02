@@ -34,6 +34,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -184,12 +185,15 @@ func ListPools() (map[string]*Pool, error) {
 // Parameters:
 //   - bundlePath: path to the bundle to import
 //   - move: if true, remove source after import
+//   - ignore: patterns of unlisted files to accept and leave out of the pool copy,
+//     in addition to those the bundle was created with. A move is refused while
+//     such files exist, because it would delete them.
 //
 // Returns:
 //   - error: if import fails; utils.ErrNotABundle, utils.ErrCorruptedBundle,
 //     utils.ErrOutdatedBundle, utils.ErrBundleExists and utils.ErrInvalidPath
 //     identify user errors
-func (p *Pool) Import(bundlePath string, move bool) error {
+func (p *Pool) Import(bundlePath string, move bool, ignore ...string) error {
 	log.Debugf("Import called:")
 	log.Debugf("  Pool:   %s (%s)", p.Title, p.Root)
 	log.Debugf("  Source: %s", bundlePath)
@@ -217,6 +221,21 @@ func (p *Pool) Import(bundlePath string, move bool) error {
 	}
 	if meta.Version < metadata.CurrentVersion {
 		return fmt.Errorf("%w: run 'bundle migrate %s' first", utils.ErrOutdatedBundle, bundlePath)
+	}
+
+	ignore, err = checksum.NormalizeIgnore(ignore)
+	if err != nil {
+		return fmt.Errorf("%w: %v", utils.ErrInvalidPath, err)
+	}
+	files := &checksum.ChecksumFile{}
+	if err := files.Load(bundlePath); err != nil {
+		return fmt.Errorf("failed to load bundle manifest: %w", err)
+	}
+	// The checksum covers every listed file, so none of them can be left out
+	for _, record := range files.Records {
+		if checksum.Ignored(ignore, record.FilePath) {
+			return fmt.Errorf("%w: ignored file is part of the bundle: %s", utils.ErrInvalidPath, record.FilePath)
+		}
 	}
 
 	// Destination is root/checksum
@@ -256,13 +275,23 @@ func (p *Pool) Import(bundlePath string, move bool) error {
 		}()
 	}
 
-	if err := verifyBundle(bundlePath); err != nil {
+	if err := verifyBundle(bundlePath, ignore...); err != nil {
 		return err
+	}
+
+	if move {
+		unlisted, err := files.Untracked(bundlePath)
+		if err != nil {
+			return err
+		}
+		if len(unlisted) > 0 {
+			return fmt.Errorf("%w: --move would delete ignored files: %s", utils.ErrInvalidPath, strings.Join(unlisted, ", "))
+		}
 	}
 
 	log.Debugf("Copying bundle from %s to pool", bundlePath)
 	err = p.Receive(meta.BundleChecksum, func(stagingPath string) error {
-		if err := copyDir(bundlePath, stagingPath); err != nil {
+		if err := copyBundle(bundlePath, stagingPath, "", append(meta.Ignore, ignore...)); err != nil {
 			return fmt.Errorf("failed to copy bundle: %w", err)
 		}
 		// The source lock must not lock the pool copy
@@ -426,8 +455,8 @@ func (p *Pool) migrateEntry(name string) (string, bool, error) {
 }
 
 // verifyBundle returns utils.ErrCorruptedBundle if the bundle fails verification.
-func verifyBundle(path string) error {
-	verified, corrupted, err := bundle.Verify(path)
+func verifyBundle(path string, ignore ...string) error {
+	verified, corrupted, err := bundle.Verify(path, ignore...)
 	if err != nil {
 		return err
 	}
@@ -559,6 +588,12 @@ func (p *Pool) GetBundlePath(checksum string) string {
 
 // copyDir recursively copies a directory.
 func copyDir(src, dst string) error {
+	return copyBundle(src, dst, "", nil)
+}
+
+// copyBundle recursively copies a bundle, leaving out what the patterns ignore.
+// rel is the slash-separated path of src in the bundle.
+func copyBundle(src, dst, rel string, ignore []string) error {
 	// Get source info
 	srcInfo, err := os.Stat(src)
 	if err != nil {
@@ -580,9 +615,22 @@ func copyDir(src, dst string) error {
 	for _, entry := range entries {
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
+		entryRel := path.Join(rel, entry.Name())
+
+		// Patterns apply to the content of the bundle, not to its metadata
+		if entryRel == ".bundle" {
+			if err := copyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+			continue
+		}
+		if checksum.Ignored(ignore, entryRel) {
+			log.Debugf("Ignoring %s", entryRel)
+			continue
+		}
 
 		if entry.IsDir() {
-			if err := copyDir(srcPath, dstPath); err != nil {
+			if err := copyBundle(srcPath, dstPath, entryRel, ignore); err != nil {
 				return err
 			}
 		} else {
