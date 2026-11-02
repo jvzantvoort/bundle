@@ -3,9 +3,13 @@ Upload a local bundle to a pool on a Bundle Server.
 The bundle is verified first, and the server verifies every file before it
 publishes the bundle, so a failed push never leaves a partial bundle on the server.
 
-A push that is interrupted can be run again, and sends only the files the server
-still misses. If the server already holds the bundle nothing is uploaded: its title
-and tags on the server stay as they are, and the push succeeds with status "exists".
+A push that is interrupted can be run again. A server that honours Idempotency-Key
+continues the upload and receives only the files it still misses. Any other server
+receives every file again in a new upload, and the old one stays open until it
+expires.
+
+If the server already holds the bundle nothing is uploaded: its title and tags on
+the server stay as they are, and the push succeeds with status "exists".
 
 Version 1 bundles must be migrated first. Bundles without files cannot be pushed.
 

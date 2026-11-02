@@ -163,8 +163,8 @@ func TestPushResumesAfterConnectionLoss(t *testing.T) {
 	dir := newBundle(t)
 
 	server.DropUpload = func(path string) bool { return path == "plain.txt" }
-	if _, err := client.Push(context.Background(), dir); err == nil || !strings.Contains(err.Error(), "resume") {
-		t.Fatalf("err = %v, want a hint to resume", err)
+	if _, err := client.Push(context.Background(), dir); err == nil || !strings.Contains(err.Error(), "run push again") {
+		t.Fatalf("err = %v, want a hint to run push again", err)
 	}
 	if server.OpenUploads() != 1 {
 		t.Fatalf("open uploads = %d, want the session kept for resuming", server.OpenUploads())
@@ -186,6 +186,82 @@ func TestPushResumesAfterConnectionLoss(t *testing.T) {
 	}
 	if len(before)+len(after) != 6 {
 		t.Errorf("uploaded %v then %v, want 6 files in total", before, after)
+	}
+}
+
+func TestPushDoesNotDependOnMissingBundleStatus(t *testing.T) {
+	server := newServer(t)
+	client := newClient(t, server)
+	dir := newBundle(t)
+	server.MissingBundleIs500 = true
+
+	result, err := client.Push(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != remote.PushStatusPushed {
+		t.Errorf("status = %s", result.Status)
+	}
+
+	result, err = client.Push(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != remote.PushStatusExists {
+		t.Errorf("second push status = %s", result.Status)
+	}
+}
+
+func TestPushStartsOverWhenServerIgnoresIdempotencyKey(t *testing.T) {
+	server := newServer(t)
+	client := newClient(t, server)
+	dir := newBundle(t)
+	server.IgnoreIdempotency = true
+
+	server.DropUpload = func(path string) bool { return path == "plain.txt" }
+	if _, err := client.Push(context.Background(), dir); err == nil {
+		t.Fatal("expected the first push to fail")
+	}
+	server.Puts()
+
+	server.DropUpload = nil
+	result, err := client.Push(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if server.Get("default", result.Checksum) == nil {
+		t.Error("bundle not on the server")
+	}
+	if puts := server.Puts(); len(puts) != 6 {
+		t.Errorf("uploaded %v, want all 6 files again", puts)
+	}
+	if server.OpenUploads() != 1 {
+		t.Errorf("open uploads = %d, want the interrupted session left open", server.OpenUploads())
+	}
+}
+
+func TestPushConflictWithoutBundleIsAnError(t *testing.T) {
+	server := newServer(t)
+	client := newClient(t, server)
+	dir := newBundle(t)
+
+	server.DropUpload = func(path string) bool { return path == "plain.txt" }
+	if _, err := client.Push(context.Background(), dir); err == nil {
+		t.Fatal("expected the first push to fail")
+	}
+	server.DropUpload = nil
+
+	// A different request gets a different key, so the open session blocks it
+	tags, err := tag.Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tags.Add("other-request")
+	if err := tags.Save(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Push(context.Background(), dir); !errors.Is(err, utils.ErrRemoteRejected) {
+		t.Errorf("err = %v, want ErrRemoteRejected", err)
 	}
 }
 
