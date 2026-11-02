@@ -510,11 +510,14 @@ bundle push <path> [--remote <name>] [--remote-pool <name>] [--json]
 }
 ```
 
-The bundle is verified first. An interrupted push can be run again and sends only
-the files the server still misses. If the server already holds the bundle, nothing
-is uploaded and `status` is `exists`; its title and tags on the server stay as they
-are. Version 1 bundles must be migrated first, and the API does not accept bundles
-without files.
+The bundle is verified first. An interrupted push can be run again. A server that
+honours `Idempotency-Key` continues the upload and receives only the files it still
+misses. Any other server receives every file again in a new upload, and the old one
+stays open until it expires.
+
+If the server already holds the bundle, nothing is uploaded and `status` is
+`exists`; its title and tags on the server stay as they are. Version 1 bundles must
+be migrated first, and the API does not accept bundles without files.
 
 #### tag add
 

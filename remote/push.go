@@ -40,10 +40,11 @@ type PushResult struct {
 // The bundle is verified first. If the server already holds it nothing is
 // uploaded, and its title and tags on the server are left alone.
 //
-// An interrupted push resumes when run again: the session is created with an
-// Idempotency-Key derived from the request, and only the files the server still
-// misses are sent. A session the server rejected is cancelled, so that it does not
-// block the next attempt until it expires.
+// An interrupted push can be run again. The session is created with an
+// Idempotency-Key derived from the request, so a server that honours the key
+// continues it and only the files it still misses are sent; a server that ignores
+// the key starts over in a new session. A session the server rejected is cancelled,
+// so that it does not block the next attempt until it expires.
 //
 // Parameters:
 //   - bundlePath: path to the local bundle
@@ -67,15 +68,15 @@ func (c *Client) Push(ctx context.Context, bundlePath string) (*PushResult, erro
 		return nil, err
 	}
 
-	if _, err := c.GetBundle(ctx, request.Checksum); err == nil {
-		result.Status = PushStatusExists
-		return result, nil
-	} else if !hasStatus(err, http.StatusNotFound) {
-		return nil, err
-	}
-
 	session, err := c.openUpload(ctx, request)
 	if err != nil {
+		// The server refuses an upload of a bundle it already holds
+		if hasStatus(err, http.StatusConflict) {
+			if _, getErr := c.GetBundle(ctx, request.Checksum); getErr == nil {
+				result.Status = PushStatusExists
+				return result, nil
+			}
+		}
 		return nil, err
 	}
 	if session.Status == "complete" {
@@ -106,7 +107,7 @@ func (c *Client) Push(ctx context.Context, bundlePath string) (*PushResult, erro
 		}
 		return nil, pushErr
 	}
-	return nil, fmt.Errorf("%w (upload %s stays open; run push again to resume)", pushErr, session.ID)
+	return nil, fmt.Errorf("%w (upload %s stays open; run push again)", pushErr, session.ID)
 }
 
 // loadPushRequest verifies a local bundle and builds its upload request.

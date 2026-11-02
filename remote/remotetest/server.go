@@ -94,6 +94,13 @@ type Server struct {
 	// RewriteUpload, if set, replaces the body of an upload after it was received
 	RewriteUpload func(path string, data []byte) []byte
 
+	// MissingBundleIs500 answers a request for a missing bundle with 500 instead of 404
+	MissingBundleIs500 bool
+
+	// IgnoreIdempotency opens a new session for every upload request, whatever its
+	// Idempotency-Key and whatever other sessions are active for the bundle
+	IgnoreIdempotency bool
+
 	mu      sync.Mutex
 	pools   map[string]map[string]*Bundle
 	uploads map[string]*upload
@@ -304,6 +311,10 @@ func (s *Server) bundleOf(w http.ResponseWriter, r *http.Request) (string, *Bund
 	sum := r.PathValue("sum")
 	bundle := s.pools[r.PathValue("pool")][sum]
 	if bundle == nil {
+		if s.MissingBundleIs500 {
+			fail(w, http.StatusInternalServerError, "bundle_read_failed", "directory is not a bundle")
+			return sum, nil
+		}
 		fail(w, http.StatusNotFound, "bundle_not_found", "No bundle "+sum)
 	}
 	return sum, bundle
@@ -505,7 +516,7 @@ func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 	hash := hex.EncodeToString(bodyHash[:])
 
 	key := r.Header.Get("Idempotency-Key")
-	if previous, ok := s.keys[key]; key != "" && ok {
+	if previous, ok := s.keys[key]; key != "" && ok && !s.IgnoreIdempotency {
 		if previous.bodyHash != hash {
 			fail(w, http.StatusConflict, "idempotency_conflict", "key reused with a different body")
 			return
@@ -538,7 +549,7 @@ func (s *Server) createUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, session := range s.uploads {
-		if session.pool == pool && session.sum == body.Checksum && session.status == "open" {
+		if session.pool == pool && session.sum == body.Checksum && session.status == "open" && !s.IgnoreIdempotency {
 			fail(w, http.StatusConflict, "upload_active", "an upload for this bundle is active")
 			return
 		}
