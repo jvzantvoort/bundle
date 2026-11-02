@@ -28,7 +28,7 @@ Bundle Library implements a Digital Asset Management (DAM) system where files ar
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.24 or later
 
 ### Build from Source
 
@@ -42,7 +42,7 @@ go build -o bundle ./cmd/bundle
 ### Install to $GOPATH/bin
 
 ```bash
-go install ./cmd/bundle@latest
+go install github.com/jvzantvoort/bundle/cmd/bundle@latest
 ```
 
 ## Quick Start
@@ -537,6 +537,17 @@ gofmt -s -w .
 
 # Static analysis
 go vet ./...
+```
+
+## Releasing
+
+Releases use `vX.Y.Z` tags, which are also the versions Go modules resolve.
+Pushing a tag runs CI and then publishes the archives and `SHA256SUMS` with
+[GoReleaser](.goreleaser.yaml); a suffix such as `v1.2.3-rc.1` marks a prerelease.
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## License

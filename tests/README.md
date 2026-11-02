@@ -32,7 +32,7 @@ To make tests robust we use a small helper that extracts the JSON object from st
 ## Troubleshooting
 
 - If tests fail with JSON unmarshal errors, inspect the captured `errout` (stderr) and `out` values printed by the test failure message. `errout` often contains helpful diagnostics.
-- If a contract test reports an unknown command like `unknown command "list" for "message"`, ensure the embedded `messages/` files are present in the checkout. The tests attempt to be resilient to missing message content, but if your environment uses a modified workspace the help/Use strings may differ.
+- If a contract test reports an unknown command like `unknown command "list" for "bundle"`, ensure the embedded `messages/` files are present in the checkout. The tests attempt to be resilient to missing message content, but if your environment uses a modified workspace the help/Use strings may differ.
 - If builds fail during tests, ensure `GOMODCACHE` and module environment are healthy: `go env` can help diagnose issues.
 
 ## Adding tests

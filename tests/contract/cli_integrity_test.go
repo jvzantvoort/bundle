@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -82,5 +83,17 @@ func TestCLI_CreateRefusals(t *testing.T) {
 	}
 	if _, _, exit, _ := runCmd(bin, repoRoot, "create", dir); exit != 1 {
 		t.Errorf("create on existing bundle: exit = %d, want 1", exit)
+	}
+}
+
+func TestCLI_Version(t *testing.T) {
+	bin, repoRoot := buildCLI(t)
+
+	out, stderr, exit, _ := runCmd(bin, repoRoot, "--version")
+	if exit != 0 {
+		t.Fatalf("--version exit = %d: %s", exit, stderr)
+	}
+	if !strings.HasPrefix(out, "bundle version ") {
+		t.Errorf("--version output = %q", out)
 	}
 }
