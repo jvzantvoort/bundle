@@ -93,6 +93,7 @@ bundle list_bundles [flags]
 #### Flags
 
 - `-p, --pool <name>` - Pool name (default: "default")
+- `-f, --full` - Show the full checksum in the table
 - `--json` - Output in JSON format
 
 #### Examples
@@ -103,6 +104,9 @@ bundle list_bundles
 
 # List bundles in backup pool
 bundle list_bundles --pool backup
+
+# List with full checksums
+bundle list_bundles -f
 
 # List with JSON output
 bundle list_bundles --json

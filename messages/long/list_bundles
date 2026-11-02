@@ -1,7 +1,8 @@
 List all bundles stored in a centralized pool.
 
 Displays a table of all bundles with their checksums, titles, authors,
-and creation dates. Bundles are sorted alphabetically by title.
+and creation dates. Bundles are sorted alphabetically by title. Checksums are
+shortened in the table; use -f to show them in full.
 
 Examples:
   # List bundles in default pool
@@ -9,6 +10,9 @@ Examples:
 
   # List bundles in specific pool
   bundle list_bundles --pool backup
+
+  # List with full checksums
+  bundle list_bundles -f
 
   # List with JSON output
   bundle list_bundles --json
@@ -22,5 +26,5 @@ Configuration:
       title: Default Bundle Pool
 
 Remote:
-  # List bundles on a server, with full checksums
+  # List bundles on a server, which always shows full checksums
   bundle list_bundles --remote origin --remote-pool archive

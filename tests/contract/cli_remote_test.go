@@ -138,6 +138,17 @@ func TestCLI_PushAndRemoteCommands(t *testing.T) {
 	if imported["status"] != "imported" {
 		t.Errorf("import = %v", imported)
 	}
+	if out, stderr, exit := cli.run(t, "list_bundles", "--pool", "local"); exit != 0 || !strings.Contains(out, sum[:12]) || strings.Contains(out, sum) {
+		t.Errorf("list_bundles table must shorten the checksum: exit = %d\n%s\n%s", exit, out, stderr)
+	}
+	for _, flag := range []string{"-f", "--full"} {
+		if out, stderr, exit := cli.run(t, "list_bundles", "--pool", "local", flag); exit != 0 || !strings.Contains(out, sum) {
+			t.Errorf("list_bundles %s must show the full checksum: exit = %d\n%s\n%s", flag, exit, out, stderr)
+		}
+	}
+	if out, stderr, exit := cli.run(t, "list_bundles", "--remote", "origin", "-f"); exit != 0 || !strings.Contains(out, sum) {
+		t.Errorf("list_bundles --remote -f: exit = %d\n%s\n%s", exit, out, stderr)
+	}
 	stored := filepath.Join(cli.pool, sum)
 	if out, stderr, exit := cli.run(t, "verify", stored); exit != 0 {
 		t.Errorf("verify of the imported bundle: exit = %d\n%s\n%s", exit, out, stderr)
