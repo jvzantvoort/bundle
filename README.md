@@ -28,7 +28,7 @@ Bundle Library implements a Digital Asset Management (DAM) system where files ar
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.24 or later
 
 ### Build from Source
 
@@ -42,7 +42,7 @@ go build -o bundle ./cmd/bundle
 ### Install to $GOPATH/bin
 
 ```bash
-go install ./cmd/bundle@latest
+go install github.com/jvzantvoort/bundle/cmd/bundle@latest
 ```
 
 ## Quick Start
@@ -175,7 +175,7 @@ meta := &metadata.Metadata{
     CreatedAt:      time.Now(),
     BundleChecksum: "abc123...",
     Author:         "username",
-    Version:        1,
+    Version:        metadata.CurrentVersion,
 }
 
 // Save metadata
@@ -190,9 +190,9 @@ err := meta.Validate()
 type Metadata struct {
     Title          string    `json:"title"`           // Human-readable name
     CreatedAt      time.Time `json:"created_at"`      // ISO 8601 timestamp
-    BundleChecksum string    `json:"bundle_checksum"` // SHA256 of sorted file checksums
+    BundleChecksum string    `json:"bundle_checksum"` // SHA256 of the file manifest (SHA256SUM.txt)
     Author         string    `json:"author"`          // System username
-    Version        int       `json:"version"`         // Metadata version (starts at 1)
+    Version        int       `json:"version"`         // Schema version: 1 hashes contents only, 2 also hashes file names
 }
 ```
 
@@ -218,8 +218,8 @@ err := files.Save("/path/to/bundle")
 // Verify file integrity
 corruptedFiles, err := files.Verify("/path/to/bundle")
 
-// Compute bundle checksum from file checksums
-bundleChecksum := checksum.ComputeBundleChecksum(checksums)
+// Compute bundle checksum from file names and checksums
+bundleChecksum := checksum.ComputeBundleChecksum(files.Records)
 ```
 
 **ChecksumFile Type:**
@@ -431,6 +431,22 @@ Or on failure:
 }
 ```
 
+`verify` exits 1 if the bundle is invalid. It reports modified, missing and
+unlisted files, and `.bundle/SHA256SUM.txt` if the manifest does not match the
+bundle checksum.
+
+#### migrate
+
+Upgrade version 1 bundles, whose checksums ignored file names, to the current
+version. The bundle checksum changes; the title, author, creation time and tags
+are kept. Corrupted bundles are refused. Version 1 bundles still pass `verify`,
+but must be migrated before `import`.
+
+```bash
+bundle migrate <path>
+bundle migrate --pool <name>   # also renames each directory to its new checksum
+```
+
 #### tag add
 
 Add tags to a bundle.
@@ -502,7 +518,7 @@ my-bundle/
 ### Exit Codes
 
 - `0` - Success
-- `1` - User error (invalid input, path not found, etc.)
+- `1` - User error (invalid input, path not found, corrupted bundle, etc.)
 - `2` - System error (I/O error, JSON marshal error, etc.)
 
 ## Development
@@ -521,6 +537,17 @@ gofmt -s -w .
 
 # Static analysis
 go vet ./...
+```
+
+## Releasing
+
+Releases use `vX.Y.Z` tags, which are also the versions Go modules resolve.
+Pushing a tag runs CI and then publishes the archives and `SHA256SUMS` with
+[GoReleaser](.goreleaser.yaml); a suffix such as `v1.2.3-rc.1` marks a prerelease.
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## License

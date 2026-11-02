@@ -52,7 +52,7 @@ C_BUILDDIR="${C_SCRIPTDIR}/build"
 C_TAGSPATH="${C_SCRIPTDIR}/tags"
 C_PACKAGESPATH="${C_SCRIPTDIR}/pkg"
 
-C_VERSION="$(git describe --tags --abbrev=0 2>/dev/null)"
+C_VERSION="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null)"
 C_REVISION=$(git rev-parse --short HEAD)
 C_URL="$(git config --get remote.origin.url)"
 C_REPONAME="$(basename "${C_URL}" .git)"

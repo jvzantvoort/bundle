@@ -31,6 +31,12 @@ var (
 	// ErrBundleLocked indicates another process holds a lock on the bundle
 	ErrBundleLocked = errors.New("bundle is locked by another process")
 
+	// ErrBundleExists indicates the bundle already exists at the destination
+	ErrBundleExists = errors.New("bundle already exists")
+
+	// ErrOutdatedBundle indicates the bundle must be migrated before this operation
+	ErrOutdatedBundle = errors.New("bundle uses an old checksum version")
+
 	// ErrCorruptedBundle indicates bundle integrity check failed
 	ErrCorruptedBundle = errors.New("bundle integrity check failed")
 

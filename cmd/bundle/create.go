@@ -52,9 +52,14 @@ func handleCreateCmd(cmd *cobra.Command, args []string) {
 			log.Errorf("directory does not exist: %s", path)
 			os.Exit(1)
 		}
-		// lock.AcquireLock returns an error string for lock contention; treat other errors as system errors
-		log.Errorf("System error: %v", err)
-		os.Exit(2)
+		// lock.AcquireLock returns an error string for lock contention, which maps to a system error
+		code := utils.ExitCodeFromError(err)
+		if code == 2 {
+			log.Errorf("System error: %v", err)
+		} else {
+			log.Error(err)
+		}
+		os.Exit(code)
 	}
 
 	// Print a human-readable summary similar to the CLI contract

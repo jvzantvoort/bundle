@@ -116,12 +116,12 @@ As a digital asset manager, I need to update bundle titles after creation so tha
 ### Functional Requirements
 
 - **FR-001**: System MUST compute SHA256 checksums for all files in the bundle directory (excluding `.bundle/` subdirectory)
-- **FR-002**: System MUST generate a deterministic bundle checksum by sorting file checksums lexicographically, concatenating them, and computing SHA256 of the concatenated string
+- **FR-002**: System MUST generate a deterministic bundle checksum covering file paths and contents, by computing SHA256 of the manifest (SHA256SUM.txt content, sorted byte-wise by file path). Bundles with META.json version 1 used SHA256 of the sorted, newline-joined file checksums; they MUST remain verifiable and be upgradable with `bundle migrate`
 - **FR-003**: System MUST create a `.bundle/META.json` file containing title, creation timestamp, bundle checksum, author (from system user), and version number
 - **FR-004**: System MUST create a `.bundle/SHA256SUM.txt` file following standard `sha256sum` output format (checksum, space, space, filepath)
 - **FR-005**: System MUST create a `.bundle/STATE.json` file containing verification status, last checked timestamp, replica locations, and total size in bytes
 - **FR-006**: System MUST persist tags in `.bundle/TAGS.txt` as newline-separated plain text entries
-- **FR-007**: CLI MUST provide commands: `create`, `verify`, `info`, `list`, `tag add`, `tag remove`, `tag list`
+- **FR-007**: CLI MUST provide commands: `create`, `verify`, `info`, `list`, `tag add`, `tag remove`, `tag list`, `migrate`
 - **FR-008**: All CLI commands MUST support `--json` flag to output structured JSON for programmatic consumption
 - **FR-009**: All CLI commands MUST exit with code 0 on success, 1 for user errors (invalid arguments), 2 for system errors (I/O failures)
 - **FR-010**: System MUST emit structured logs using logrus with levels: ERROR (integrity failures, I/O errors), WARN (missing metadata), INFO (operations), DEBUG (checksums)
@@ -149,7 +149,7 @@ As a digital asset manager, I need to update bundle titles after creation so tha
 - **Tag**: User-assigned classification label; stored in TAGS.txt; used for search and organization; multiple tags allowed per bundle
 - **Pool**: Centralized storage location for bundles; configured in config.yaml; stores bundles by checksum in content-addressable layout
 - **Pool Configuration**: YAML definition containing pool name, root directory path, and optional human-readable title
-- **Checksum Record**: Entry in SHA256SUM.txt containing file path and SHA256 hash; sorted lexicographically by hash for deterministic bundle checksum computation
+- **Checksum Record**: Entry in SHA256SUM.txt containing file path and SHA256 hash; sorted byte-wise by file path for deterministic bundle checksum computation
 - **Bundle State**: Verification status, last checked timestamp, known replica locations, total size; stored in STATE.json; updated by verify operations
 
 ## Success Criteria *(mandatory)*
@@ -157,7 +157,7 @@ As a digital asset manager, I need to update bundle titles after creation so tha
 ### Measurable Outcomes
 
 - **SC-001**: Users can create a bundle from 100 files (totaling 1GB) in under 30 seconds on standard hardware
-- **SC-002**: Identical file collections produce identical bundle checksums regardless of creation time or directory order (100% determinism)
+- **SC-002**: Identical file collections (same paths and contents) produce identical bundle checksums regardless of creation time or directory order (100% determinism)
 - **SC-003**: Integrity verification correctly detects 100% of file modifications, deletions, or corruptions
 - **SC-004**: All CLI commands complete successfully with exit code 0 for valid inputs and provide clear error messages (with exit codes 1 or 2) for invalid inputs
 - **SC-005**: Bundle operations support files up to 10GB without memory exhaustion (streaming checksum computation)

@@ -1,0 +1,20 @@
+Upgrade version 1 bundles to the current checksum version.
+
+Version 1 bundle checksums ignored file names. Migrating verifies the files
+against the existing manifest, then recomputes the checksum so it covers file
+names and contents. The title, author, creation time and tags are preserved.
+The bundle checksum changes.
+
+A corrupted bundle is refused. Files that version 1 skipped because their path
+contained ".bundle" are added; any other unlisted file is refused.
+
+With --pool, every version 1 bundle in the pool is migrated and its directory
+renamed to the new checksum. An entry whose new checksum is already in the pool
+is left in place and reported.
+
+Examples:
+  # Migrate one bundle
+  bundle migrate /path/to/bundle
+
+  # Migrate all bundles in a pool
+  bundle migrate --pool default

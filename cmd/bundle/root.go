@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime/debug"
 
 	"github.com/jvzantvoort/bundle/config"
 	"github.com/jvzantvoort/bundle/messages"
@@ -11,6 +12,10 @@ import (
 
 var verbose bool
 var jsonOutput bool
+
+// version and revision are set at build time with -ldflags.
+var version string
+var revision string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -28,11 +33,28 @@ func Execute() {
 	}
 }
 
+// versionString returns the version set at build time. Binaries from go install
+// have no build flags, so it falls back to the module version.
+func versionString() string {
+	current := version
+	if current == "" {
+		current = "dev"
+		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+			current = info.Main.Version
+		}
+	}
+	if revision != "" {
+		current += " (" + revision + ")"
+	}
+	return current
+}
+
 func init() {
 	// Initialize configuration system
 	config.InitConfig()
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.Version = versionString()
 
 	// Setup logging
 	log.SetFormatter(&log.TextFormatter{

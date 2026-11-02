@@ -12,7 +12,7 @@
 //	    CreatedAt:      time.Now(),
 //	    BundleChecksum: "abc123...",
 //	    Author:         "username",
-//	    Version:        1,
+//	    Version:        metadata.CurrentVersion,
 //	}
 //
 //	// Save to .bundle/META.json
@@ -81,7 +81,7 @@ func Load(bundlePath string) (*Metadata, error) {
 //	    CreatedAt:      time.Now(),
 //	    BundleChecksum: "abc123...",
 //	    Author:         "username",
-//	    Version:        1,
+//	    Version:        metadata.CurrentVersion,
 //	}
 //	err := meta.Save("/path/to/bundle")
 //	if err != nil {
@@ -108,7 +108,7 @@ func (m *Metadata) Save(bundlePath string) error {
 //
 // It validates:
 //   - BundleChecksum is exactly 64 lowercase hex characters
-//   - Version is >= 1
+//   - Version is between VersionLegacy and CurrentVersion
 //   - Author is not empty
 //   - CreatedAt is not zero
 //
@@ -119,7 +119,7 @@ func (m *Metadata) Save(bundlePath string) error {
 //	    CreatedAt:      time.Now(),
 //	    BundleChecksum: "abc123...",
 //	    Author:         "username",
-//	    Version:        1,
+//	    Version:        metadata.CurrentVersion,
 //	}
 //	if err := meta.Validate(); err != nil {
 //	    log.Fatal("Invalid metadata:", err)
@@ -139,8 +139,8 @@ func (m *Metadata) Validate() error {
 	}
 
 	// Check version
-	if m.Version < 1 {
-		return fmt.Errorf("invalid version: %d, must be >= 1", m.Version)
+	if m.Version < VersionLegacy || m.Version > CurrentVersion {
+		return fmt.Errorf("invalid version: %d, must be between %d and %d", m.Version, VersionLegacy, CurrentVersion)
 	}
 
 	// Check required fields

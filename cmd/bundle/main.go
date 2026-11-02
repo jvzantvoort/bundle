@@ -11,6 +11,7 @@
 //	bundle tag remove <path> <tag>...
 //	bundle tag list <path>
 //	bundle rename <path> <new_title>
+//	bundle migrate <path>
 //
 // All commands support --json flag for machine-readable output and --verbose
 // flag for detailed logging.

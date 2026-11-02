@@ -164,15 +164,14 @@ import (
 )
 
 func main() {
-    // File checksums (in any order)
-    checksums := []string{
-        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
-        "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e8",
+    // File names and checksums (in any order)
+    records := []checksum.ChecksumRecord{
+        {Checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", FilePath: "empty.txt"},
+        {Checksum: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", FilePath: "docs/hello.txt"},
     }
     
     // Compute deterministic bundle checksum
-    bundleChecksum := checksum.ComputeBundleChecksum(checksums)
+    bundleChecksum := checksum.ComputeBundleChecksum(records)
     fmt.Printf("Bundle checksum: %s\n", bundleChecksum)
 }
 ```
@@ -235,7 +234,7 @@ func main() {
         CreatedAt:      time.Now(),
         BundleChecksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         Author:         "username",
-        Version:        1,
+        Version:        metadata.CurrentVersion,
     }
     
     // Validate before saving

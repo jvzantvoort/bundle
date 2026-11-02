@@ -1,69 +1,39 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: read
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   release:
-    permissions:
-      contents: write  # to upload release asset (actions/upload-release-asset)
-
     name: Release bundle
+    needs: ci
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux, darwin, windows]
-        goarch: [386, amd64, arm64]
-        exclude:
-          - goos: darwin
-            goarch: 386
-
+    permissions:
+      contents: write  # to create the release and upload its assets
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
 
-      - name: Download dependencies
-        run: |
-          go mod download
-
-      - name: Prepare build directory
-        run: |
-          mkdir -p build/${{ matrix.goos }}.${{ matrix.goarch }}
-
-      - name: Build
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-            go build -trimpath -o $GITHUB_WORKSPACE/build/${{ matrix.goos }}.${{ matrix.goarch }} \
-            ./cmd/bundle
-
-      - name: Create package
-        id: package
-        run: |
-          if [ "${{ matrix.goos }}" != "windows" ]
-          then
-            PACKAGE_NAME=bundle.${GITHUB_REF#refs/tags/bundle-}.${{ matrix.goos }}.${{ matrix.goarch }}.tar.gz
-            tar -czvf $PACKAGE_NAME -C build/${{ matrix.goos }}.${{ matrix.goarch }} .
-          else
-            PACKAGE_NAME=bundle.${GITHUB_REF#refs/tags/bundle-}.${{ matrix.goos }}.${{ matrix.goarch }}.zip
-            pushd "build/${{ matrix.goos }}.${{ matrix.goarch }}"
-            find . -type f | zip -@ ../../$PACKAGE_NAME
-            popd
-          fi
-          echo ::set-output name=name::${PACKAGE_NAME}
-
-      - name: Upload asset
-        uses: actions/upload-release-asset@v1
+      - name: Publish release
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: '~> v2'
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ steps.package.outputs.name }}
-          asset_name: ${{ steps.package.outputs.name }}
-          asset_content_type: application/gzip

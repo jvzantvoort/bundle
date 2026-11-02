@@ -56,7 +56,7 @@ func handleImportCmd(cmd *cobra.Command, args []string) {
 	// Import bundle
 	if err := p.Import(bundlePath, moveFlag); err != nil {
 		log.Errorf("Import failed: %v", err)
-		os.Exit(2)
+		os.Exit(utils.ExitCodeFromError(err))
 	}
 
 	if jsonOutput {
