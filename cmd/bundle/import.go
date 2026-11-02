@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(ImportCmd)
 	ImportCmd.Flags().StringP("pool", "p", "default", "pool name to import to")
 	ImportCmd.Flags().BoolP("move", "m", false, "move bundle instead of copy")
+	addRemoteFlags(ImportCmd)
 }
 
 func handleImportCmd(cmd *cobra.Command, args []string) {
@@ -45,6 +46,15 @@ func handleImportCmd(cmd *cobra.Command, args []string) {
 	bundlePath := args[0]
 	poolName, _ := cmd.Flags().GetString("pool")
 	moveFlag, _ := cmd.Flags().GetBool("move")
+
+	if remoteName != "" {
+		if moveFlag {
+			log.Error("--move cannot be used with --remote")
+			os.Exit(1)
+		}
+		remoteImport(bundlePath, poolName)
+		return
+	}
 
 	// Get pool configuration
 	p, err := pool.GetPool(poolName)

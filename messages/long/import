@@ -26,3 +26,11 @@ Configuration:
     backup:
       root: /backup/bundles
       title: Backup Pool
+
+Remote:
+  # Download a bundle from a server into a local pool
+  bundle import --remote origin <checksum> --pool backup
+
+  The manifest and every file are checked against the checksum before the
+  bundle appears in the pool. --pool is the local destination; --remote-pool
+  selects the pool on the server.

@@ -20,3 +20,7 @@ Configuration:
     default:
       root: /mnt/bundles
       title: Default Bundle Pool
+
+Remote:
+  # List bundles on a server, with full checksums
+  bundle list_bundles --remote origin --remote-pool archive

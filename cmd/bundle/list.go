@@ -26,6 +26,7 @@ var ListCmd = &cobra.Command{
 
 func init() {
     rootCmd.AddCommand(ListCmd)
+    addRemoteFlags(ListCmd)
 }
 
 func handleListCmd(cmd *cobra.Command, args []string) {
@@ -44,6 +45,12 @@ func handleListCmd(cmd *cobra.Command, args []string) {
     }
 
     path := args[0]
+
+    if remoteName != "" {
+        remoteList(path)
+        return
+    }
+
     b, err := bundle.Load(path)
     if err != nil {
         if os.IsNotExist(err) || strings.Contains(err.Error(), "not a bundle") {

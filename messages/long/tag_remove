@@ -1,0 +1,4 @@
+
+Remote:
+  # Remove tags from a bundle on a server
+  bundle tag remove --remote origin <checksum> <tag> [<tag>...]

@@ -42,4 +42,10 @@ var (
 
 	// ErrIncompleteBundle indicates bundle is missing required metadata files
 	ErrIncompleteBundle = errors.New("bundle is incomplete (missing required files)")
+
+	// ErrRemoteConfig indicates a remote is missing from the configuration or invalid
+	ErrRemoteConfig = errors.New("invalid remote configuration")
+
+	// ErrRemoteRejected indicates the server refused a request
+	ErrRemoteRejected = errors.New("rejected by the server")
 )

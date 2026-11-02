@@ -26,6 +26,7 @@ var ListBundlesCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(ListBundlesCmd)
 	ListBundlesCmd.Flags().StringP("pool", "p", "default", "pool name to list bundles from")
+	addRemoteFlags(ListBundlesCmd)
 }
 
 func handleListBundlesCmd(cmd *cobra.Command, args []string) {
@@ -36,6 +37,15 @@ func handleListBundlesCmd(cmd *cobra.Command, args []string) {
 	defer log.Debugf("%s: end", cmd.Use)
 
 	poolName, _ := cmd.Flags().GetString("pool")
+
+	if remoteName != "" {
+		if cmd.Flags().Changed("pool") {
+			log.Error("--pool selects a local pool: use --remote-pool with --remote")
+			os.Exit(1)
+		}
+		remoteListBundles()
+		return
+	}
 
 	// Get pool configuration
 	p, err := pool.GetPool(poolName)

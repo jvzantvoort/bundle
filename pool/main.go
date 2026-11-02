@@ -38,6 +38,7 @@ import (
 	"strings"
 
 	"github.com/jvzantvoort/bundle/bundle"
+	"github.com/jvzantvoort/bundle/checksum"
 	"github.com/jvzantvoort/bundle/lock"
 	"github.com/jvzantvoort/bundle/metadata"
 	"github.com/jvzantvoort/bundle/utils"
@@ -259,40 +260,19 @@ func (p *Pool) Import(bundlePath string, move bool) error {
 		return err
 	}
 
-	// Copy to a hidden staging directory in the pool, on the same filesystem as
-	// the destination, so the final rename is atomic
-	stagingRoot, err := os.MkdirTemp(p.Root, stagingPrefix+"*")
+	log.Debugf("Copying bundle from %s to pool", bundlePath)
+	err = p.Receive(meta.BundleChecksum, func(stagingPath string) error {
+		if err := copyDir(bundlePath, stagingPath); err != nil {
+			return fmt.Errorf("failed to copy bundle: %w", err)
+		}
+		// The source lock must not lock the pool copy
+		if err := os.Remove(filepath.Join(stagingPath, ".bundle", ".lock")); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to clean up copy: %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create staging directory: %w", err)
-	}
-	defer func() {
-		if err := os.RemoveAll(stagingRoot); err != nil {
-			log.Errorf("failed to remove staging directory: %v", err)
-		}
-	}()
-	stagingPath := filepath.Join(stagingRoot, meta.BundleChecksum)
-
-	log.Debugf("Copying bundle from %s to %s", bundlePath, stagingPath)
-	if err := copyDir(bundlePath, stagingPath); err != nil {
-		log.Debugf("Failed to copy bundle: %v", err)
-		return fmt.Errorf("failed to copy bundle: %w", err)
-	}
-	log.Debugf("Bundle copied successfully")
-
-	// The source lock must not lock the pool copy
-	if err := os.Remove(filepath.Join(stagingPath, ".bundle", ".lock")); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to clean up copy: %w", err)
-	}
-
-	if err := verifyBundle(stagingPath); err != nil {
-		return fmt.Errorf("copy failed verification: %w", err)
-	}
-
-	if err := os.Rename(stagingPath, destPath); err != nil {
-		if errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("%w in pool: %s", utils.ErrBundleExists, meta.BundleChecksum)
-		}
-		return fmt.Errorf("failed to move bundle into pool: %w", err)
+		return err
 	}
 
 	// If move, remove source
@@ -306,6 +286,71 @@ func (p *Pool) Import(bundlePath string, move bool) error {
 	}
 
 	log.Debugf("Import completed successfully")
+	return nil
+}
+
+// Receive adds a bundle to the pool, written by fill.
+//
+// fill creates the bundle in a hidden staging directory in the pool, on the same
+// filesystem as the destination, so the final rename is atomic. The bundle only
+// appears in the pool once it has passed verification under the expected checksum;
+// a failure leaves nothing behind.
+//
+// Parameters:
+//   - sum: checksum the bundle must have
+//   - fill: creates the bundle at the given path, which does not exist yet
+//
+// Returns:
+//   - error: utils.ErrBundleExists if the pool holds the bundle,
+//     utils.ErrCorruptedBundle if the result fails verification,
+//     utils.ErrInvalidPath if sum is not a checksum, or any error from fill
+func (p *Pool) Receive(sum string, fill func(stagingPath string) error) error {
+	// The checksum becomes a directory name
+	if !checksum.ValidSHA256(sum) {
+		return fmt.Errorf("%w: not a bundle checksum: %q", utils.ErrInvalidPath, sum)
+	}
+
+	destPath := filepath.Join(p.Root, sum)
+	if _, err := os.Stat(destPath); err == nil {
+		return fmt.Errorf("%w in pool: %s", utils.ErrBundleExists, sum)
+	}
+
+	if err := os.MkdirAll(p.Root, 0755); err != nil {
+		return fmt.Errorf("failed to create pool directory: %w", err)
+	}
+
+	stagingRoot, err := os.MkdirTemp(p.Root, stagingPrefix+"*")
+	if err != nil {
+		return fmt.Errorf("failed to create staging directory: %w", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(stagingRoot); err != nil {
+			log.Errorf("failed to remove staging directory: %v", err)
+		}
+	}()
+	stagingPath := filepath.Join(stagingRoot, sum)
+
+	if err := fill(stagingPath); err != nil {
+		return err
+	}
+
+	if err := verifyBundle(stagingPath); err != nil {
+		return fmt.Errorf("copy failed verification: %w", err)
+	}
+	meta, err := metadata.Load(stagingPath)
+	if err != nil {
+		return fmt.Errorf("copy failed verification: %w", err)
+	}
+	if meta.BundleChecksum != sum {
+		return fmt.Errorf("%w: expected bundle %s, got %s", utils.ErrCorruptedBundle, sum, meta.BundleChecksum)
+	}
+
+	if err := os.Rename(stagingPath, destPath); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%w in pool: %s", utils.ErrBundleExists, sum)
+		}
+		return fmt.Errorf("failed to move bundle into pool: %w", err)
+	}
 	return nil
 }
 
