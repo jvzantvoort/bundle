@@ -249,6 +249,9 @@ func TestPushConflictWithoutBundleIsAnError(t *testing.T) {
 	if _, err := client.Push(context.Background(), dir); err == nil {
 		t.Fatal("expected the first push to fail")
 	}
+	if server.OpenUploads() != 1 {
+		t.Fatalf("open uploads = %d, want the session kept", server.OpenUploads())
+	}
 	server.DropUpload = nil
 
 	// A different request gets a different key, so the open session blocks it
