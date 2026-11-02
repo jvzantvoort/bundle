@@ -12,7 +12,7 @@ import (
 // This test covers create, info, verify, list, and rename in JSON and non-JSON modes.
 func TestCLI_More(t *testing.T) {
     tmp := t.TempDir()
-    bin := filepath.Join(tmp, "bundle-test-bin")
+    bin := testBinPath(tmp)
     cwd, _ := os.Getwd()
     repoRoot := filepath.Join(cwd, "..", "..")
     cmdPath := filepath.Join(repoRoot, "cmd", "bundle")

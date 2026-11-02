@@ -5,14 +5,25 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
+// testBinPath returns where to build the CLI in dir. Windows only runs files with
+// an executable extension.
+func testBinPath(dir string) string {
+	name := "bundle-test-bin"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	return filepath.Join(dir, name)
+}
+
 // buildCLI compiles the CLI into a temp directory and returns its path and the repo root.
 func buildCLI(t *testing.T) (string, string) {
 	t.Helper()
-	bin := filepath.Join(t.TempDir(), "bundle-test-bin")
+	bin := testBinPath(t.TempDir())
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
