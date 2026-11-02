@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -103,13 +104,18 @@ func TestManifest_RoundTripAndSHA256Sum(t *testing.T) {
 	names := []string{
 		"plain.txt",
 		"with space.txt",
-		" leading and trailing ",
-		"back\\slash",
-		"new\nline",
-		"carriage\rreturn",
 		"my.bundle.txt",
 		"photos.bundle/file",
 		"sub dir/nested file",
+	}
+	// Windows does not allow these file names
+	if runtime.GOOS != "windows" {
+		names = append(names,
+			" leading and trailing ",
+			"back\\slash",
+			"new\nline",
+			"carriage\rreturn",
+		)
 	}
 
 	dir := t.TempDir()

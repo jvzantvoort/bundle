@@ -17,16 +17,14 @@ jobs:
   test:
     name: test (${{ matrix.os }}, ${{ matrix.go }})
     runs-on: ${{ matrix.os }}
-    # Windows has not passed yet, so it reports without blocking
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, go: stable, experimental: false }
-          - { os: ubuntu-latest, go: oldstable, experimental: false }
-          - { os: macos-latest, go: stable, experimental: false }
-          - { os: windows-latest, go: stable, experimental: true }
+          - { os: ubuntu-latest, go: stable }
+          - { os: ubuntu-latest, go: oldstable }
+          - { os: macos-latest, go: stable }
+          - { os: windows-latest, go: stable }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

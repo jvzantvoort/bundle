@@ -41,7 +41,7 @@ func runCmd(bin string, workdir string, args ...string) (string, string, int, er
 func TestTagCLI_AddListRemove_JSON(t *testing.T) {
     // Build binary
     tmp := t.TempDir()
-    bin := filepath.Join(tmp, "bundle-test-bin")
+    bin := testBinPath(tmp)
     // Build CLI binary from repo root
     cwd, _ := os.Getwd()
     repoRoot := filepath.Join(cwd, "..", "..")

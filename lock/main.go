@@ -18,6 +18,7 @@
 package lock
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,8 +26,10 @@ import (
 
 // Lock represents a bundle lock.
 //
-// It holds a reference to the lock file and path for cleanup. Locks should
-// always be released using Release() when operations are complete.
+// It holds the lock file path for cleanup. The lock is held by the file existing,
+// so the file is not kept open: Windows cannot delete an open file, and a move
+// deletes the bundle while it is locked. Locks should always be released using
+// Release() when operations are complete.
 //
 // Example:
 //
@@ -37,7 +40,6 @@ import (
 //	defer lock.Release()
 type Lock struct {
 	lockPath string
-	lockFile *os.File
 }
 
 // AcquireLock attempts to acquire a lock on the bundle (fail-fast).
@@ -85,18 +87,18 @@ func AcquireLock(bundlePath string) (*Lock, error) {
 	}
 
 	// Write PID for debugging
-	fmt.Fprintf(lockFile, "PID: %d\n", os.Getpid())
+	_, writeErr := fmt.Fprintf(lockFile, "PID: %d\n", os.Getpid())
+	if err := errors.Join(writeErr, lockFile.Close()); err != nil {
+		return nil, errors.Join(err, os.Remove(lockPath))
+	}
 
-	return &Lock{
-		lockPath: lockPath,
-		lockFile: lockFile,
-	}, nil
+	return &Lock{lockPath: lockPath}, nil
 }
 
 // Release removes the lock.
 //
-// It closes the lock file handle and deletes .bundle/.lock. Should always be
-// called when operations are complete, typically via defer.
+// It deletes .bundle/.lock. Should always be called when operations are
+// complete, typically via defer.
 //
 // Example:
 //
@@ -109,9 +111,6 @@ func AcquireLock(bundlePath string) (*Lock, error) {
 //   - error: if lock file cannot be deleted; a lock file that is already gone
 //     (the bundle was moved away while locked) is not an error
 func (l *Lock) Release() error {
-	if l.lockFile != nil {
-		l.lockFile.Close()
-	}
 	if err := os.Remove(l.lockPath); err != nil && !os.IsNotExist(err) {
 		return err
 	}
