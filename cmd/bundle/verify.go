@@ -46,18 +46,22 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 
 	verified, corrupted, err := bundle.Verify(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			log.Errorf("directory does not exist: %s", path)
-			os.Exit(1)
+		code := utils.ExitCodeFromError(err)
+		if code == 2 {
+			log.Errorf("System error: %v", err)
+		} else {
+			log.Error(err)
 		}
-		log.Errorf("System error: %v", err)
-		os.Exit(2)
+		os.Exit(code)
 	}
 
 	if verified {
 		log.Info("Bundle Integrity: VALID")
 	} else {
 		log.Info("Bundle Integrity: INVALID")
+		for _, file := range corrupted {
+			log.Infof("Corrupted: %s", file)
+		}
 	}
 
 	if jsonOutput {
@@ -76,5 +80,9 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 			log.Errorf("failed to output json: %v", err)
 			os.Exit(2)
 		}
+	}
+
+	if !verified {
+		os.Exit(1)
 	}
 }

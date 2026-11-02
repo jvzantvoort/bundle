@@ -106,10 +106,14 @@ func AcquireLock(bundlePath string) (*Lock, error) {
 //	// Perform operations...
 //
 // Returns:
-//   - error: if lock file cannot be deleted
+//   - error: if lock file cannot be deleted; a lock file that is already gone
+//     (the bundle was moved away while locked) is not an error
 func (l *Lock) Release() error {
 	if l.lockFile != nil {
 		l.lockFile.Close()
 	}
-	return os.Remove(l.lockPath)
+	if err := os.Remove(l.lockPath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }

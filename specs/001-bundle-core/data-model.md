@@ -26,9 +26,9 @@ import "time"
 type Metadata struct {
     Title          string    `json:"title"`            // Human-readable name
     CreatedAt      time.Time `json:"created_at"`       // ISO 8601 timestamp
-    BundleChecksum string    `json:"bundle_checksum"`  // SHA256 of sorted file checksums
+    BundleChecksum string    `json:"bundle_checksum"`  // SHA256 of the file manifest
     Author         string    `json:"author"`           // System username
-    Version        int       `json:"version"`          // Metadata version (starts at 1)
+    Version        int       `json:"version"`          // Metadata schema version
 }
 ```
 
@@ -37,7 +37,7 @@ type Metadata struct {
 - `CreatedAt`: Required, RFC3339 format (`time.RFC3339`)
 - `BundleChecksum`: Required, exactly 64 hex characters (SHA256)
 - `Author`: Required, non-empty string (from `os.Getenv("USER")` or equivalent)
-- `Version`: Required, positive integer starting at 1
+- `Version`: Required, 1 (legacy: checksum covers file contents only) or 2 (current: checksum covers file paths and contents)
 
 **File Format Example**:
 ```json
@@ -46,7 +46,7 @@ type Metadata struct {
   "created_at": "2025-10-30T10:48:42Z",
   "bundle_checksum": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890",
   "author": "jvzantvoort",
-  "version": 1
+  "version": 2
 }
 ```
 
@@ -138,7 +138,8 @@ a7d5c8f9e1234567890abcdef1234567890abcdef1234567890abcdef123456  ./video.mp4
 **Format Details**:
 - Two spaces between checksum and filepath
 - Filepath starts with `./` prefix
-- Sorted lexicographically by checksum (for determinism)
+- Sorted byte-wise by filepath (for determinism); the bundle checksum is the SHA256 of this file
+- As in `sha256sum`, a line starting with `\` holds a filepath with `\`, newline and carriage return escaped as `\\`, `\n` and `\r`
 
 **Operations**:
 - `Load(bundlePath string) (*ChecksumFile, error)` - Parse SHA256SUM.txt
@@ -348,7 +349,7 @@ bundle-directory/
 
 | Entity | Required Fields | Constraints |
 |--------|-----------------|-------------|
-| Metadata | CreatedAt, BundleChecksum, Author, Version | Checksum 64 hex chars, Version ≥ 1 |
+| Metadata | CreatedAt, BundleChecksum, Author, Version | Checksum 64 hex chars, Version 1 or 2 |
 | State | - (all optional) | SizeBytes ≥ 0, Replicas valid URIs |
 | ChecksumRecord | Checksum, FilePath | Checksum 64 hex chars, FilePath relative |
 | Tags | - (can be empty) | Each tag ≤ 64 chars, no newlines |
@@ -375,14 +376,12 @@ bundle-directory/
 ### Metadata Version Transitions
 
 ```text
-Version 1 (initial creation)
-    ↓ Title change
-Version 2 (metadata updated, checksum unchanged)
-    ↓ Tag addition
-Version 2 (no version change, tags not in metadata)
+Version 1 (legacy: checksum of sorted file checksums)
+    ↓ bundle migrate
+Version 2 (current: checksum of the manifest, including file paths)
 ```
 
-**Note**: Only metadata changes (title, author) increment version. Tag changes do NOT increment metadata version (tags are separate entity).
+**Note**: `version` is the schema version and selects the bundle checksum algorithm. Title and tag changes do NOT change it.
 
 ---
 
@@ -408,7 +407,7 @@ Version 2 (no version change, tags not in metadata)
 ### Checksum File Encoding
 - Plain text, UTF-8
 - Two spaces between checksum and path (standard sha256sum format)
-- Sort by checksum (not filepath) for determinism
+- Sort by filepath (not checksum) for determinism
 
 ### Tags File Encoding
 - Plain text, UTF-8

@@ -48,13 +48,13 @@ This document specifies the command-line interface contracts for the Bundle CLI 
 **Behavior**:
 1. Scan directory for all files (excluding `.bundle/`)
 2. Compute SHA256 checksum for each file
-3. Generate deterministic bundle checksum from sorted file checksums
+3. Generate deterministic bundle checksum from the manifest (file paths and checksums, sorted by path)
 4. Create `.bundle/` subdirectory
 5. Write `META.json`, `SHA256SUM.txt`, `STATE.json`, `TAGS.txt` (empty)
 
 **Exit Codes**:
 - **0**: Bundle created successfully
-- **1**: Path does not exist or is not a directory
+- **1**: Path does not exist, is not a directory, or is already a bundle
 - **2**: I/O error (permission denied, disk full)
 
 **Output (Table Mode)**:
@@ -108,8 +108,9 @@ System error: permission denied: /root/protected
 1. Check if `.bundle/` subdirectory exists
 2. Load `SHA256SUM.txt`
 3. Recompute checksum for each file
-4. Compare against stored checksums
-5. Update `STATE.json` with verification result and timestamp
+4. Compare against stored checksums, and report files `SHA256SUM.txt` does not list
+5. Check `SHA256SUM.txt` against the bundle checksum in `META.json`, using the algorithm for its version
+6. Update `STATE.json` with verification result and timestamp
 
 **Exit Codes**:
 - **0**: Bundle integrity valid (all checksums match)
@@ -456,15 +457,16 @@ Title updated: Iceland Vacation 2024 → Iceland Trip 2024
 - `--json`: Output JSON instead of human-readable text
 
 **Behavior**:
-1. Load bundle metadata to get checksum
-2. Load pool configuration from config file
-3. Create destination directory: `<pool_root>/<checksum>/`
-4. Copy (or move) bundle to destination
-5. Verify integrity after copy
+1. Load pool configuration from config file
+2. Load and validate bundle metadata to get checksum; version 1 bundles are refused until migrated
+3. Verify the source bundle
+4. Copy the bundle to a hidden staging directory in the pool and verify the copy
+5. Rename the copy to `<pool_root>/<checksum>/`
+6. With `--move`, remove the source only after step 5
 
 **Exit Codes**:
 - **0**: Import successful
-- **1**: Not a bundle OR pool not found in config
+- **1**: Not a bundle, corrupted, not migrated, already in the pool, pool inside the bundle, OR pool not found in config
 - **2**: I/O error OR copy/move failed
 
 **Output (Table Mode)**:
@@ -496,7 +498,32 @@ pools:
 
 ---
 
-### 10. `bundle list_bundles [flags]`
+### 10. `bundle migrate <path>` / `bundle migrate --pool <name>`
+
+**Description**: Upgrade version 1 bundles to the current checksum version.
+
+**Arguments**:
+- `<path>`: Bundle directory (required unless `--pool` is given)
+
+**Flags**:
+- `--pool <name>`: Migrate all bundles in this pool
+- `--json`: Output JSON instead of human-readable text
+
+**Behavior**:
+1. Skip bundles already at the current version
+2. Check `SHA256SUM.txt` against the version 1 bundle checksum and verify all listed files
+3. Add files that version 1 skipped because their path contained `.bundle`; refuse any other unlisted file
+4. Rewrite `SHA256SUM.txt` and update `bundle_checksum` and `version` in `META.json`
+5. With `--pool`, rename the directory to the new checksum; if that name exists, leave the entry in place and report it
+
+**Exit Codes**:
+- **0**: All bundles migrated or already current
+- **1**: Usage error, not a bundle, corrupted, pool not found, OR any pool entry could not be migrated
+- **2**: I/O error
+
+---
+
+### 11. `bundle list_bundles [flags]`
 
 **Description**: List all bundles in a centralized pool.
 

@@ -13,38 +13,37 @@ This document captures design decisions for the Bundle Library implementation, a
 ## R-001: Deterministic Checksum Algorithm
 
 ### Decision
-Use lexicographic sorting of SHA256 hashes with Unix line endings (`\n`) for cross-platform determinism.
+Hash the manifest: one `<checksum>  ./<path>` line per file, sorted byte-wise by path, with Unix line endings (`\n`) for cross-platform determinism.
+
+**Superseded**: this originally hashed only the sorted file checksums, so bundles with the same contents under different names got the same checksum and collided in pools. Such bundles have `version: 1` in META.json and are upgraded with `bundle migrate`.
 
 ### Algorithm
 
 ```go
 // Pseudocode for deterministic bundle checksum
 func ComputeBundleChecksum(files []string) (string, error) {
-    var checksums []string
-    
-    // Step 1: Compute SHA256 for each file
+    // Step 1: Sort paths (byte-wise comparison)
+    sort.Strings(files)
+
+    // Step 2: Render one manifest line per file, escaping paths like sha256sum
+    var manifest strings.Builder
     for _, filePath := range files {
         hash, err := computeFileSHA256(filePath)
         if err != nil {
             return "", err
         }
-        checksums = append(checksums, hash)
+        fmt.Fprintf(&manifest, "%s  ./%s\n", hash, filePath)
     }
-    
-    // Step 2: Sort checksums lexicographically (byte-wise comparison)
-    sort.Strings(checksums) // Go's sort.Strings uses byte-wise comparison
-    
-    // Step 3: Concatenate with Unix newlines
-    combined := strings.Join(checksums, "\n")
-    
-    // Step 4: Compute SHA256 of concatenated string
-    bundleHash := sha256.Sum256([]byte(combined))
+
+    // Step 3: Compute SHA256 of the manifest
+    bundleHash := sha256.Sum256([]byte(manifest.String()))
     return hex.EncodeToString(bundleHash[:]), nil
 }
 ```
 
 ### Rationale
 - **Lexicographic sorting**: Go's `sort.Strings()` provides consistent byte-wise ordering across platforms
+- **Paths included**: A bundle's identity covers its file names as well as their contents
 - **Unix newlines**: Hardcode `\n` (not `\r\n`) to avoid Windows/Unix differences
 - **No timestamps**: Exclude file metadata entirely, use only content hashes
 - **Determinism test**: Run 100 times with shuffled file order, all results must match
@@ -56,11 +55,10 @@ files1 := []string{"a.txt", "b.txt", "c.txt"}
 files2 := []string{"c.txt", "a.txt", "b.txt"}
 assert.Equal(t, ComputeBundleChecksum(files1), ComputeBundleChecksum(files2))
 
-// Test: Same content, different filenames → same checksum (hash-based)
-// (Assuming identical file content despite different names)
+// Test: Same content, different filenames → different checksum
 files3 := []string{"copy1.txt", "copy2.txt"} // Both contain "hello"
 files4 := []string{"dup1.txt", "dup2.txt"}   // Both contain "hello"
-// Should produce same checksums array after sorting
+assert.NotEqual(t, ComputeBundleChecksum(files3), ComputeBundleChecksum(files4))
 ```
 
 ### Alternatives Considered

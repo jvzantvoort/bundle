@@ -12,7 +12,7 @@
 //	    CreatedAt:      time.Now(),
 //	    BundleChecksum: "abc123...",
 //	    Author:         "username",
-//	    Version:        1,
+//	    Version:        metadata.CurrentVersion,
 //	}
 //
 //	// Save to .bundle/META.json
@@ -27,6 +27,15 @@ package metadata
 
 import "time"
 
+// Metadata schema versions. The version selects how BundleChecksum is computed.
+const (
+	// VersionLegacy bundles hash file checksums only, ignoring file names.
+	VersionLegacy = 1
+
+	// CurrentVersion bundles hash the manifest, covering names and contents.
+	CurrentVersion = 2
+)
+
 // Metadata represents the bundle metadata stored in .bundle/META.json.
 //
 // It contains immutable information about the bundle that is set at creation
@@ -35,9 +44,9 @@ import "time"
 // Fields:
 //   - Title: human-readable name for the bundle (mutable)
 //   - CreatedAt: ISO 8601 timestamp of bundle creation
-//   - BundleChecksum: SHA256 of sorted file checksums (64 hex chars)
+//   - BundleChecksum: SHA256 of the file manifest (64 hex chars)
 //   - Author: system username that created the bundle
-//   - Version: metadata schema version (currently 1)
+//   - Version: metadata schema version (see CurrentVersion)
 //
 // Example JSON:
 //
@@ -46,12 +55,12 @@ import "time"
 //	  "created_at": "2024-01-15T10:30:00Z",
 //	  "bundle_checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 //	  "author": "username",
-//	  "version": 1
+//	  "version": 2
 //	}
 type Metadata struct {
 	Title          string    `json:"title"`           // Human-readable name
 	CreatedAt      time.Time `json:"created_at"`      // ISO 8601 timestamp
-	BundleChecksum string    `json:"bundle_checksum"` // SHA256 of sorted file checksums
+	BundleChecksum string    `json:"bundle_checksum"` // SHA256 of the file manifest
 	Author         string    `json:"author"`          // System username
-	Version        int       `json:"version"`         // Metadata version (starts at 1)
+	Version        int       `json:"version"`         // Metadata schema version
 }

@@ -15,6 +15,8 @@ func TestShouldExclude(t *testing.T) {
 		{"file in bundle dir", ".bundle/META.json", true},
 		{"normal file", "file.txt", false},
 		{"normal dir", "subdir/file.txt", false},
+		{"name containing .bundle", "my.bundle.txt", false},
+		{"dir name containing .bundle", "photos.bundle/file.txt", false},
 	}
 
 	for _, tt := range tests {

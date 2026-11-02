@@ -76,8 +76,9 @@ func GetBundleMetadataDir(bundlePath string) string {
 
 // ShouldExclude checks if a path should be excluded from bundle operations.
 //
-// It returns true for any path containing ".bundle", which excludes the
-// .bundle/ metadata directory itself.
+// It returns true for any path with a component named exactly ".bundle", which
+// excludes the .bundle/ metadata directory. Names that merely contain ".bundle",
+// such as my.bundle.txt, are not excluded.
 //
 // Example:
 //
@@ -93,9 +94,14 @@ func GetBundleMetadataDir(bundlePath string) string {
 //   - path: file path to check
 //
 // Returns:
-//   - bool: true if path contains .bundle, false otherwise
+//   - bool: true if a path component is .bundle, false otherwise
 func ShouldExclude(path string) bool {
-	return strings.Contains(path, bundleMetadataDir)
+	for _, part := range strings.Split(filepath.ToSlash(path), "/") {
+		if part == bundleMetadataDir {
+			return true
+		}
+	}
+	return false
 }
 
 // NormalizePath cleans and returns the absolute path.

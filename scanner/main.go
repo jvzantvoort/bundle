@@ -22,7 +22,6 @@ package scanner
 import (
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // ScanDirectory walks a directory tree and returns all file paths, excluding .bundle/.
@@ -56,17 +55,12 @@ func ScanDirectory(rootPath string) ([]string, error) {
 		}
 
 		// Skip .bundle directory entirely
-		if info.IsDir() && info.Name() == ".bundle" {
+		if info.IsDir() && path != rootPath && info.Name() == ".bundle" {
 			return filepath.SkipDir
 		}
 
 		// Skip directories, only collect files
 		if info.IsDir() {
-			return nil
-		}
-
-		// Skip if path contains .bundle (in case of nested)
-		if strings.Contains(path, ".bundle") {
 			return nil
 		}
 
@@ -108,15 +102,11 @@ func ScanWithSymlinks(rootPath string) ([]string, error) {
 		}
 
 		// Skip .bundle directory
-		if info.IsDir() && info.Name() == ".bundle" {
+		if info.IsDir() && path != rootPath && info.Name() == ".bundle" {
 			return filepath.SkipDir
 		}
 
 		if info.IsDir() {
-			return nil
-		}
-
-		if strings.Contains(path, ".bundle") {
 			return nil
 		}
 

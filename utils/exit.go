@@ -52,6 +52,8 @@ func ExitCodeFromError(err error) int {
 	if errors.Is(err, ErrNotABundle) ||
 		errors.Is(err, ErrInvalidPath) ||
 		errors.Is(err, ErrBundleLocked) ||
+		errors.Is(err, ErrBundleExists) ||
+		errors.Is(err, ErrOutdatedBundle) ||
 		errors.Is(err, ErrCorruptedBundle) ||
 		errors.Is(err, ErrIncompleteBundle) {
 		return 1

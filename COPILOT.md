@@ -48,21 +48,19 @@ Derived deterministically from the checksums of all contained files.
 
 **Computation logic (formalized):**
 1. Generate a SHA256 checksum for every file in the bundle, excluding `.bundle/`.
-2. Collect and sort the hashes lexicographically.
-3. Concatenate them with newline delimiters.
-4. Compute the SHA256 of this concatenated string — that is the **bundle checksum**.
-5. The bundle’s **physical name** is derived from this final hash.
+2. Render one `<checksum>  ./<path>` line per file, sorted byte-wise by path (the content of `SHA256SUM.txt`).
+3. Compute the SHA256 of those lines — that is the **bundle checksum**.
+4. The bundle’s **physical name** is derived from this final hash.
+
+The checksum covers file names and contents, and equals `sha256sum .bundle/SHA256SUM.txt`.
 
 **Example pseudocode (Python-like):**
 ```python
 def compute_bundle_checksum(bundle_path):
-    checksums = []
-    for path in find_files(bundle_path, exclude=[".bundle", "SHA256SUM.txt"]):
-        checksum = sha256sum(path)
-        checksums.append(checksum)
-    checksums.sort()
-    combined = "\n".join(checksums).encode("utf-8")
-    return sha256(combined).hexdigest()
+    lines = []
+    for path in sorted(find_files(bundle_path, exclude=[".bundle"])):
+        lines.append(f"{sha256sum(path)}  ./{path}\n")
+    return sha256("".join(lines).encode("utf-8")).hexdigest()
 ```
 
 ### 3.2 Title
@@ -73,7 +71,7 @@ A human-readable name stored in `.bundle/META.json`:
   "created_at": "2025-10-30T13:05:00Z",
   "bundle_checksum": "f63f83f3e5...",
   "author": "John",
-  "version": 1
+  "version": 2
 }
 ```
 
