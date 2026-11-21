@@ -21,7 +21,7 @@ To run a single test use `-run`, for example:
 go test ./tests/contract -run TestCLI_More -v
 ```
 
-The contract tests build a temporary binary in a test temporary directory, then execute it. Tests assume a Go toolchain (Go 1.20+). If you have multiple Go versions installed, ensure the `go` on your PATH is compatible with the module.
+The contract tests build a temporary binary in a test temporary directory, then execute it. Tests need at least the Go version in the `go` directive of `go.mod`. If you have multiple Go versions installed, ensure the `go` on your PATH is compatible with the module.
 
 ## JSON output and logging
 
