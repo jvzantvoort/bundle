@@ -144,6 +144,14 @@ The token goes to whichever URL the configuration names. `./config.yaml` is read
 when neither `~/.config/bundle/config.yaml` nor `/etc/bundle/config.yaml` exists, so
 with `BUNDLE_TOKEN` set, do not run remote commands in a directory you do not trust.
 
+### API specification
+
+`openapi.yaml` is a copy of the canonical file in
+[bundle-server](https://github.com/jvzantvoort/bundle-server/blob/main/openapi.yaml).
+Change the API there, then run `scripts/sync-openapi.sh` here to update the copy.
+The OpenAPI workflow fails when the copy differs, on every push and pull request
+and once a week.
+
 ## Architecture
 
 Bundle Library follows a library-first architecture with independent components:
