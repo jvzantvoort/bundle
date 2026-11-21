@@ -28,7 +28,7 @@ Bundle Library implements a Digital Asset Management (DAM) system where files ar
 
 ### Prerequisites
 
-- Go 1.24 or later
+- Go, at least the version in the `go` directive of [go.mod](go.mod)
 
 ### Build from Source
 

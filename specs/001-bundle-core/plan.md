@@ -11,7 +11,7 @@ Build a Go library and CLI for content-addressable, immutable file bundles with 
 
 ## Technical Context
 
-**Language/Version**: Go 1.21+  
+**Language/Version**: Go, minimum as in the `go` directive of `go.mod`  
 **Primary Dependencies**: 
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/spf13/viper` - Configuration management
@@ -75,7 +75,7 @@ Build a Go library and CLI for content-addressable, immutable file bundles with 
 - **Status**: PASS - Logging architecture defined
 
 ### Technology Standards Compliance
-- ✅ Go 1.21+ with standard library
+- ✅ Go (minimum from `go.mod`) with standard library
 - ✅ Required libraries: Cobra, Viper, Logrus, Tablewriter, Color
 - ✅ Code structure follows user preference (cmd/, config/, functional areas, messages/, utils/)
 - ✅ Go modules with semantic versioning
