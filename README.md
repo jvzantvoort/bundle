@@ -28,7 +28,7 @@ Bundle Library implements a Digital Asset Management (DAM) system where files ar
 
 ### Prerequisites
 
-- Go 1.24 or later
+- Go, at least the version in the `go` directive of [go.mod](go.mod)
 
 ### Build from Source
 
@@ -144,6 +144,14 @@ The token goes to whichever URL the configuration names. `./config.yaml` is read
 when neither `~/.config/bundle/config.yaml` nor `/etc/bundle/config.yaml` exists, so
 with `BUNDLE_TOKEN` set, do not run remote commands in a directory you do not trust.
 
+### API specification
+
+`openapi.yaml` is a copy of the canonical file in
+[bundle-server](https://github.com/jvzantvoort/bundle-server/blob/main/openapi.yaml).
+Change the API there, then run `scripts/sync-openapi.sh` here to update the copy.
+The OpenAPI workflow fails when the copy differs, on every push and pull request
+and once a week.
+
 ## Architecture
 
 Bundle Library follows a library-first architecture with independent components:
@@ -159,13 +167,40 @@ Bundle Library follows a library-first architecture with independent components:
 
 CLI commands in `cmd/` use dependency injection to call library functions.
 
+## Configuration and Troubleshooting
+
+The configuration is read from the first of these files that exists:
+
+1. `~/.config/bundle/config.yaml`
+2. `/etc/bundle/config.yaml`
+3. `./config.yaml`
+
+The file used is logged at startup. For debug logging, which shows pool lookups,
+imports and remote requests step by step, pass `-v` (`--verbose`) to any command,
+or set it in the configuration:
+
+```yaml
+log_level: debug
+```
+
 ## Documentation
 
 - [Quickstart Guide](specs/001-bundle-core/quickstart.md) - Developer onboarding
 - [CLI Commands](specs/001-bundle-core/contracts/cli-commands.md) - Complete CLI reference
+- [Examples](EXAMPLES.md) - Library and CLI examples, including scripting
 - [Pool Storage](POOLS.md) - Centralized storage guide
 - [Data Model](specs/001-bundle-core/data-model.md) - Entity definitions
 - [Implementation Plan](specs/001-bundle-core/plan.md) - Technical architecture
+- Package documentation: `go doc github.com/jvzantvoort/bundle/bundle`, or
+  `go doc -all` on any package for every type and function
+
+### Writing documentation
+
+Every exported package, type and function has a doc comment. Function comments
+describe the behaviour, then give an `Example:`, `Parameters:` and `Returns:`
+section, as in `checksum/main.go`. New library functionality also gets an example
+in [EXAMPLES.md](EXAMPLES.md), and a new package a section under API Documentation
+below.
 
 ## API Documentation
 

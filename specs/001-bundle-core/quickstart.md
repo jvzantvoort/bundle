@@ -13,15 +13,15 @@ This guide helps you quickly set up, build, test, and understand the Bundle Libr
 ## Prerequisites
 
 ### Required
-- **Go 1.21+**: [Download](https://go.dev/dl/)
+- **Go**: at least the version in the `go` directive of `go.mod` ([Download](https://go.dev/dl/))
 - **Git**: For version control
 - **Unix-like environment**: Linux, macOS, or WSL2 on Windows
 
 ### Verify Installation
 
 ```bash
-$ go version
-go version go1.21.0 linux/amd64
+$ go version              # at least the version in go.mod
+go version go1.24.5 linux/amd64
 
 $ git --version
 git version 2.40.0

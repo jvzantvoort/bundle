@@ -1,9 +1,19 @@
 <!--
 Sync Impact Report:
-- Version: 0.0.0 → 1.0.0
-- Initial constitution ratification
-- Principles established: Content Integrity, Library-First Architecture, CLI-First Interface, Immutability, Observability & Debugging
-- Templates requiring updates: ⚠ Pending validation of .specify/templates/* alignment
+- Version: 1.0.0 → 1.1.0 (2026-11-21)
+- Modified: Technology Standards > Language & Toolchain. The minimum Go version
+  is now the `go` directive in go.mod instead of a number here ("Go 1.21+" no
+  longer matched go.mod, which requires 1.24.5). Documentation refers to go.mod
+  instead of repeating the number.
+- Added: CI tests the minimum Go version and the current stable release
+  (MINOR, because it adds a requirement).
+- Updated to match: README.md, tests/README.md,
+  specs/001-bundle-core/{plan,quickstart}.md, .github/workflows/ci.yml
+- Templates: .specify/templates/* name no Go version; no change needed
+
+Previous: 0.0.0 → 1.0.0, initial ratification of the principles Content
+Integrity, Library-First Architecture, CLI-First Interface, Immutability, and
+Observability & Debugging.
 -->
 
 # Bundle Library Constitution
@@ -53,7 +63,12 @@ CLI output MUST separate user-facing results (stdout) from operational logs (std
 ## Technology Standards
 
 ### Language & Toolchain
-- **Language**: Go 1.21+ (use generics where appropriate)
+- **Language**: Go (use generics where appropriate). The minimum version is the
+  `go` directive in `go.mod` (1.24.5 at the time of writing); that directive is
+  the only place the number is kept, and documentation refers to it.
+- **Supported versions**: CI MUST test the minimum version from `go.mod` and the
+  current stable release. Raising the minimum is a change to `go.mod` and is
+  noted in the release notes.
 - **Build**: Standard `go build`, no custom build scripts
 - **Modules**: Go modules with semantic versioning
 
@@ -108,4 +123,4 @@ This constitution supersedes all informal practices. All pull requests, code rev
 
 **Runtime Guidance**: See `COPILOT.md` for detailed implementation patterns and operational context.
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-30 | **Last Amended**: 2025-10-30
+**Version**: 1.1.0 | **Ratified**: 2025-10-30 | **Last Amended**: 2026-11-21
