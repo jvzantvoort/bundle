@@ -96,7 +96,7 @@ func handleListBundlesCmd(cmd *cobra.Command, args []string) {
 
 	// Human-readable table output
 	if len(bundles) == 0 {
-		log.Info("No bundles found in pool")
+		fmt.Println("No bundles found in pool")
 		return
 	}
 

@@ -4,6 +4,7 @@ Copyright © 2025 John van Zantvoort <john@vanzantvoort.org>
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -112,5 +113,5 @@ func handleRenameCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	log.Infof("Title updated: %s → %s", oldTitle, newTitle)
+	fmt.Printf("Title updated: %s → %s\n", oldTitle, newTitle)
 }

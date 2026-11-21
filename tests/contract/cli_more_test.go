@@ -52,7 +52,7 @@ func TestCLI_More(t *testing.T) {
         t.Fatalf("info -j failed: err=%v exit=%d out=%s errout=%s", err, exit, out, stderr)
     }
     var infoResp map[string]interface{}
-    if err := json.Unmarshal([]byte(extractJSON(out)), &infoResp); err != nil {
+    if err := json.Unmarshal([]byte(out), &infoResp); err != nil {
         t.Fatalf("invalid json from info: %v out=%s errout=%s", err, out, stderr)
     }
     if infoResp["path"] == nil {
@@ -65,7 +65,7 @@ func TestCLI_More(t *testing.T) {
         t.Fatalf("verify -j failed: err=%v exit=%d out=%s errout=%s", err, exit, out, stderr)
     }
     var verResp map[string]interface{}
-    if err := json.Unmarshal([]byte(extractJSON(out)), &verResp); err != nil {
+    if err := json.Unmarshal([]byte(out), &verResp); err != nil {
         t.Fatalf("invalid json from verify: %v out=%s errout=%s", err, out, stderr)
     }
     if verResp["status"] == nil {
@@ -78,7 +78,7 @@ func TestCLI_More(t *testing.T) {
         t.Fatalf("list -j failed: err=%v exit=%d out=%s errout=%s", err, exit, out, stderr)
     }
     var listResp map[string]interface{}
-    if err := json.Unmarshal([]byte(extractJSON(out)), &listResp); err != nil {
+    if err := json.Unmarshal([]byte(out), &listResp); err != nil {
         t.Fatalf("invalid json from list: %v out=%s errout=%s", err, out, stderr)
     }
     if listResp["path"] == nil {
@@ -92,18 +92,10 @@ func TestCLI_More(t *testing.T) {
         t.Fatalf("rename failed: err=%v exit=%d out=%s errout=%s", err, exit, out, stderr)
     }
     var renResp map[string]interface{}
-    if err := json.Unmarshal([]byte(extractJSON(out)), &renResp); err != nil {
+    if err := json.Unmarshal([]byte(out), &renResp); err != nil {
         t.Fatalf("invalid json from rename: %v out=%s errout=%s", err, out, stderr)
     }
     if renResp["title"] != "NewTitle" {
         t.Fatalf("rename did not set title: %v", renResp)
     }
-}
-
-// extractJSON finds the first '{' and returns substring from there, or the original string if not found.
-func extractJSON(s string) string {
-    if i := strings.Index(s, "{"); i >= 0 {
-        return s[i:]
-    }
-    return s
 }

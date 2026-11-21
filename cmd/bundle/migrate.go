@@ -4,6 +4,7 @@ Copyright © 2025 John van Zantvoort <john@vanzantvoort.org>
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jvzantvoort/bundle/bundle"
@@ -83,9 +84,9 @@ func migrateBundle(path string) {
 	}
 
 	if changed {
-		log.Infof("Bundle migrated, new checksum: %s", newChecksum)
+		fmt.Printf("Bundle migrated, new checksum: %s\n", newChecksum)
 	} else {
-		log.Info("Bundle is already up to date")
+		fmt.Println("Bundle is already up to date")
 	}
 }
 
@@ -120,7 +121,7 @@ func migratePool(poolName string) {
 				log.Errorf("%s: %v", result.Name, result.Err)
 			}
 		} else if !jsonOutput {
-			log.Infof("%s -> %s", result.Name, result.NewChecksum)
+			fmt.Printf("%s -> %s\n", result.Name, result.NewChecksum)
 		}
 		out = append(out, entry)
 	}
@@ -131,7 +132,7 @@ func migratePool(poolName string) {
 			os.Exit(2)
 		}
 	} else {
-		log.Infof("%d bundle(s) processed", len(results))
+		fmt.Printf("%d bundle(s) processed\n", len(results))
 	}
 
 	if exitCode != 0 {

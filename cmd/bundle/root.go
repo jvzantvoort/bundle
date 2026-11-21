@@ -63,11 +63,11 @@ func init() {
 		TimestampFormat:        "2006-01-02 15:04:05",
 	})
 
-	// Output to stdout instead of the default stderr
-	// Can be any io.Writer, see below for File example
-	log.SetOutput(os.Stdout)
+	// Logs go to stderr, so that stdout carries only the command output and
+	// --json output stays valid JSON
+	log.SetOutput(os.Stderr)
 
-	// Only log the warning severity or above.
+	// Log info and above; -v lowers this to debug
 	log.SetLevel(log.InfoLevel)
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")

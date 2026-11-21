@@ -1,9 +1,9 @@
 package contract_test
 
 import (
+    "bytes"
     "context"
     "encoding/json"
-    "io"
     "os"
     "os/exec"
     "path/filepath"
@@ -20,22 +20,17 @@ func runCmd(bin string, workdir string, args ...string) (string, string, int, er
         cmd.Dir = workdir
     }
 
-    stdoutPipe, _ := cmd.StdoutPipe()
-    stderrPipe, _ := cmd.StderrPipe()
+    // Buffers, not pipes read one after the other: a command that fills the
+    // stderr pipe while stdout is being read would never finish
+    var stdout, stderr bytes.Buffer
+    cmd.Stdout, cmd.Stderr = &stdout, &stderr
 
-    if err := cmd.Start(); err != nil {
-        return "", "", -1, err
-    }
-
-    outBytes, _ := io.ReadAll(stdoutPipe)
-    errBytes, _ := io.ReadAll(stderrPipe)
-
-    err := cmd.Wait()
+    err := cmd.Run()
     exit := 0
     if cmd.ProcessState != nil {
         exit = cmd.ProcessState.ExitCode()
     }
-    return string(outBytes), string(errBytes), exit, err
+    return stdout.String(), stderr.String(), exit, err
 }
 
 func TestTagCLI_AddListRemove_JSON(t *testing.T) {

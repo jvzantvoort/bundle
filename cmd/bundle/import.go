@@ -4,6 +4,7 @@ Copyright © 2025 John van Zantvoort <john@vanzantvoort.org>
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jvzantvoort/bundle/messages"
@@ -99,6 +100,6 @@ func handleImportCmd(cmd *cobra.Command, args []string) {
 	if moveFlag {
 		action = "moved"
 	}
-	log.Infof("Bundle %s to pool '%s'", action, poolName)
-	log.Infof("Pool: %s", p.Root)
+	fmt.Printf("Bundle %s to pool '%s'\n", action, poolName)
+	fmt.Printf("Pool: %s\n", p.Root)
 }

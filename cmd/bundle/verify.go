@@ -4,6 +4,7 @@ Copyright © 2025 John van Zantvoort <john@vanzantvoort.org>
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jvzantvoort/bundle/messages"
@@ -63,12 +64,14 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 		os.Exit(code)
 	}
 
-	if verified {
-		log.Info("Bundle Integrity: VALID")
-	} else {
-		log.Info("Bundle Integrity: INVALID")
-		for _, file := range corrupted {
-			log.Infof("Corrupted: %s", file)
+	if !jsonOutput {
+		if verified {
+			fmt.Println("Bundle Integrity: VALID")
+		} else {
+			fmt.Println("Bundle Integrity: INVALID")
+			for _, file := range corrupted {
+				fmt.Printf("Corrupted: %s\n", file)
+			}
 		}
 	}
 
