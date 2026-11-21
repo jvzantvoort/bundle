@@ -175,9 +175,6 @@ or set it in the configuration:
 log_level: debug
 ```
 
-Log messages are currently written to stdout, together with the command output, so
-leave out `-v` when another program reads `--json` output.
-
 ## Documentation
 
 - [Quickstart Guide](specs/001-bundle-core/quickstart.md) - Developer onboarding
