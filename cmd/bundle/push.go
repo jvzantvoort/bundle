@@ -4,6 +4,7 @@ Copyright © 2025 John van Zantvoort <john@vanzantvoort.org>
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/jvzantvoort/bundle/messages"
@@ -73,9 +74,9 @@ func handlePushCmd(cmd *cobra.Command, args []string) {
 	}
 
 	if result.Status == remote.PushStatusExists {
-		log.Infof("Bundle already on '%s', pool '%s': %s", client.Name, client.Pool, result.Checksum)
+		fmt.Printf("Bundle already on '%s', pool '%s': %s\n", client.Name, client.Pool, result.Checksum)
 		return
 	}
-	log.Infof("Bundle pushed to '%s', pool '%s': %s", client.Name, client.Pool, result.Checksum)
-	log.Infof("%d file(s), %s", result.FileCount, formatBytes(result.SizeBytes))
+	fmt.Printf("Bundle pushed to '%s', pool '%s': %s\n", client.Name, client.Pool, result.Checksum)
+	fmt.Printf("%d file(s), %s\n", result.FileCount, formatBytes(result.SizeBytes))
 }

@@ -93,11 +93,11 @@ func remoteVerify(sum string) {
 			"corrupted_files": corrupted,
 		})
 	} else if result.Verified {
-		log.Info("Bundle Integrity: VALID")
+		fmt.Println("Bundle Integrity: VALID")
 	} else {
-		log.Info("Bundle Integrity: INVALID")
+		fmt.Println("Bundle Integrity: INVALID")
 		for _, file := range result.CorruptedFiles {
-			log.Infof("Corrupted: %s (%s)", file.Path, file.Reason)
+			fmt.Printf("Corrupted: %s (%s)\n", file.Path, file.Reason)
 		}
 	}
 
@@ -207,7 +207,7 @@ func remoteListBundles() {
 	}
 
 	if len(bundles) == 0 {
-		log.Info("No bundles found in pool")
+		fmt.Println("No bundles found in pool")
 		return
 	}
 
@@ -250,7 +250,7 @@ func remoteRename(sum, title string) {
 		})
 		return
 	}
-	log.Infof("Title updated: %s", updated.Title)
+	fmt.Printf("Title updated: %s\n", updated.Title)
 }
 
 // outputRemoteTags prints the tags of a bundle on a server.
@@ -345,14 +345,14 @@ func remoteMigrate(args []string) {
 		}
 		out = append(out, bundleResult{Name: sum, Status: result.Status, Checksum: result.Checksum})
 		if !jsonOutput {
-			log.Infof("%s -> %s (%s)", sum, result.Checksum, result.Status)
+			fmt.Printf("%s -> %s (%s)\n", sum, result.Checksum, result.Status)
 		}
 	}
 
 	if jsonOutput {
 		outputRemoteJSON(client, map[string]interface{}{"bundles": out})
 	} else {
-		log.Infof("%d bundle(s) processed", len(out))
+		fmt.Printf("%d bundle(s) processed\n", len(out))
 	}
 	if exitCode != 0 {
 		os.Exit(exitCode)
@@ -394,6 +394,6 @@ func remoteImport(sum, poolName string) {
 		})
 		return
 	}
-	log.Infof("Bundle downloaded to pool '%s'", poolName)
-	log.Infof("Pool: %s", p.Root)
+	fmt.Printf("Bundle downloaded to pool '%s'\n", poolName)
+	fmt.Printf("Pool: %s\n", p.Root)
 }

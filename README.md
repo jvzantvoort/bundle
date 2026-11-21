@@ -409,7 +409,9 @@ defer bundleLock.Release()
 
 ### CLI Commands
 
-All CLI commands support `--json` output for programmatic use.
+All CLI commands support `--json` output for programmatic use. Results go to
+stdout and log messages to stderr, so `--json` output is valid JSON, also with
+`-v`. Errors are reported on stderr and through the [exit code](#exit-codes).
 
 #### create
 

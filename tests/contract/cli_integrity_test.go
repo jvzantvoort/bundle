@@ -65,7 +65,7 @@ func TestCLI_VerifyExitCodes(t *testing.T) {
 		t.Fatalf("verify with an extra file: exit = %d, want 1: %s", exit, out)
 	}
 	var resp map[string]interface{}
-	if err := json.Unmarshal([]byte(extractJSON(out)), &resp); err != nil {
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
 		t.Fatalf("invalid json: %v: %s", err, out)
 	}
 	if resp["status"] != "invalid" {
@@ -107,7 +107,7 @@ func TestCLI_LocalInfoAndVerifyOutput(t *testing.T) {
 			t.Fatalf("verify exit = %d, want %d: %s", exit, wantExit, out)
 		}
 		var resp map[string]interface{}
-		if err := json.Unmarshal([]byte(extractJSON(out)), &resp); err != nil {
+		if err := json.Unmarshal([]byte(out), &resp); err != nil {
 			t.Fatalf("invalid json: %v: %s", err, out)
 		}
 		if resp["status"] != wantStatus || resp["files_checked"] != float64(2) {
@@ -178,7 +178,7 @@ func TestCLI_Ignore(t *testing.T) {
 		t.Fatalf("create exit = %d: %s", exit, stderr)
 	}
 	var resp map[string]interface{}
-	if err := json.Unmarshal([]byte(extractJSON(out)), &resp); err != nil {
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
 		t.Fatalf("invalid json: %v: %s", err, out)
 	}
 	if resp["files"] != float64(1) {
@@ -186,5 +186,43 @@ func TestCLI_Ignore(t *testing.T) {
 	}
 	if out, _, exit, _ := runCmd(bin, repoRoot, "verify", dir); exit != 0 {
 		t.Errorf("verify exit = %d: %s", exit, out)
+	}
+}
+
+// Results go to stdout and logs to stderr, so --json output stays valid JSON even
+// with -v, and plain output carries no log prefixes.
+func TestCLI_LogsGoToStderr(t *testing.T) {
+	bin, repoRoot := buildCLI(t)
+	dir := filepath.Join(t.TempDir(), "data")
+	writeFile(t, filepath.Join(dir, "a.txt"), "a")
+	if _, stderr, exit, _ := runCmd(bin, repoRoot, "create", dir, "--title", "T"); exit != 0 {
+		t.Fatalf("create exit = %d: %s", exit, stderr)
+	}
+
+	for _, args := range [][]string{
+		{"verify", dir},
+		{"info", dir},
+		{"list", dir},
+		{"tag", "list", dir},
+		{"rename", dir, "New title"},
+	} {
+		out, stderr, exit, _ := runCmd(bin, repoRoot, append(args, "-j", "-v")...)
+		if exit != 0 {
+			t.Fatalf("%v: exit = %d: %s", args, exit, stderr)
+		}
+		if !json.Valid([]byte(out)) {
+			t.Errorf("%v -j -v: stdout is not only JSON: %s", args, out)
+		}
+		if !strings.Contains(stderr, "level=debug") {
+			t.Errorf("%v -v: no debug log on stderr: %s", args, stderr)
+		}
+	}
+
+	out, stderr, exit, _ := runCmd(bin, repoRoot, "verify", dir)
+	if exit != 0 || out != "Bundle Integrity: VALID\n" {
+		t.Errorf("verify: exit = %d, stdout = %q, want the result only", exit, out)
+	}
+	if strings.Contains(stderr, "Bundle Integrity") {
+		t.Errorf("verify printed its result to stderr: %s", stderr)
 	}
 }
