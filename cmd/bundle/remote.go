@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jvzantvoort/bundle/checksum"
 	"github.com/jvzantvoort/bundle/metadata"
 	"github.com/jvzantvoort/bundle/pool"
 	"github.com/jvzantvoort/bundle/remote"
@@ -80,9 +81,9 @@ func remoteVerify(sum string) {
 		exitRemote(err)
 	}
 
-	corrupted := make([]string, 0, len(result.CorruptedFiles))
+	problems := make([]checksum.Problem, 0, len(result.CorruptedFiles))
 	for _, file := range result.CorruptedFiles {
-		corrupted = append(corrupted, file.Path)
+		problems = append(problems, checksum.Problem{Path: file.Path, Reason: file.Reason, Expected: file.Expected, Found: file.Actual})
 	}
 	if jsonOutput {
 		outputRemoteJSON(client, map[string]interface{}{
@@ -90,15 +91,11 @@ func remoteVerify(sum string) {
 			"checksum":        sum,
 			"files_checked":   result.FilesChecked,
 			"last_verified":   result.CheckedAt.UTC().Format("2006-01-02T15:04:05Z"),
-			"corrupted_files": corrupted,
+			"corrupted_files": checksum.Paths(problems),
+			"problems":        problems,
 		})
-	} else if result.Verified {
-		fmt.Println("Bundle Integrity: VALID")
 	} else {
-		fmt.Println("Bundle Integrity: INVALID")
-		for _, file := range result.CorruptedFiles {
-			fmt.Printf("Corrupted: %s (%s)\n", file.Path, file.Reason)
-		}
+		printVerification(result.Verified, result.FilesChecked, result.CheckedAt, problems)
 	}
 
 	if !result.Verified {

@@ -474,7 +474,8 @@ bundle verify <path> [--json]
   "status": "valid",
   "files_checked": 42,
   "last_verified": "2024-01-15T10:30:00Z",
-  "corrupted_files": []
+  "corrupted_files": [],
+  "problems": []
 }
 ```
 
@@ -484,13 +485,29 @@ Or on failure:
   "status": "invalid",
   "files_checked": 42,
   "last_verified": "2024-01-15T10:30:00Z",
-  "corrupted_files": ["photo1.jpg", "document.pdf"]
+  "corrupted_files": ["document.pdf", "photo1.jpg"],
+  "problems": [
+    {"path": "document.pdf", "reason": "missing", "expected": "a7d5c8f9…"},
+    {"path": "photo1.jpg", "reason": "checksum_mismatch", "expected": "0f343b09…", "found": "deadbeef…"}
+  ]
 }
 ```
 
-`verify` exits 1 if the bundle is invalid. It reports modified, missing and
-unlisted files, and `.bundle/SHA256SUM.txt` if the manifest does not match the
-bundle checksum.
+`verify` exits 1 if the bundle is invalid. `problems` gives the reason for each
+path in `corrupted_files`: `checksum_mismatch` (with the `expected` and `found`
+checksums), `missing` (with `expected`), `unlisted` for a file the manifest does
+not list, and `manifest_checksum_mismatch` for `.bundle/SHA256SUM.txt` when the
+manifest does not match the bundle checksum. The reasons are those of the Bundle
+Server API. Without `--json` the same is printed as a table:
+
+```text
+Bundle Integrity: INVALID
+-------------------------
+Files Checked: 42
+Corrupted Files:
+- document.pdf (file missing)
+- photo1.jpg (expected: 0f343b09..., found: deadbeef...)
+```
 
 #### migrate
 

@@ -73,8 +73,10 @@ type Capabilities struct {
 
 // CorruptedFile is one problem found by a server-side verification.
 type CorruptedFile struct {
-	Path   string `json:"path"`
-	Reason string `json:"reason"`
+	Path     string `json:"path"`
+	Reason   string `json:"reason"`             // missing, checksum_mismatch, unlisted or manifest_checksum_mismatch
+	Expected string `json:"expected,omitempty"` // Checksum the manifest records; empty if the server sent none
+	Actual   string `json:"actual,omitempty"`   // Checksum found on the server; empty if the server sent none
 }
 
 // VerificationResult is the outcome of a server-side verification.

@@ -219,10 +219,80 @@ func TestCLI_LogsGoToStderr(t *testing.T) {
 	}
 
 	out, stderr, exit, _ := runCmd(bin, repoRoot, "verify", dir)
-	if exit != 0 || out != "Bundle Integrity: VALID\n" {
+	if exit != 0 || !strings.HasPrefix(out, "Bundle Integrity: VALID\n") || strings.Contains(out, "level=") {
 		t.Errorf("verify: exit = %d, stdout = %q, want the result only", exit, out)
 	}
 	if strings.Contains(stderr, "Bundle Integrity") {
 		t.Errorf("verify printed its result to stderr: %s", stderr)
+	}
+}
+
+// verify prints the table of the CLI contract, and --json adds the reason for
+// each file next to the list of paths.
+func TestCLI_VerifyReportsWhatIsWrong(t *testing.T) {
+	bin, repoRoot := buildCLI(t)
+	dir := filepath.Join(t.TempDir(), "data")
+	writeFile(t, filepath.Join(dir, "a.txt"), "a")
+	writeFile(t, filepath.Join(dir, "b.txt"), "b")
+	writeFile(t, filepath.Join(dir, "c.txt"), "c")
+	if _, stderr, exit, _ := runCmd(bin, repoRoot, "create", dir, "--title", "T"); exit != 0 {
+		t.Fatalf("create exit = %d: %s", exit, stderr)
+	}
+
+	out, _, exit, _ := runCmd(bin, repoRoot, "verify", dir)
+	lines := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
+	if exit != 0 || len(lines) != 4 ||
+		lines[0] != "Bundle Integrity: VALID" ||
+		lines[1] != strings.Repeat("-", len(lines[0])) ||
+		lines[2] != "Files Checked: 3" ||
+		!strings.HasPrefix(lines[3], "Last Verified: ") {
+		t.Errorf("valid bundle: exit = %d, stdout:\n%s", exit, out)
+	}
+	if _, err := time.ParseInLocation("2006-01-02 15:04:05", strings.TrimPrefix(lines[len(lines)-1], "Last Verified: "), time.Local); err != nil {
+		t.Errorf("Last Verified is not a time: %v", err)
+	}
+
+	writeFile(t, filepath.Join(dir, "a.txt"), "changed")
+	if err := os.Remove(filepath.Join(dir, "c.txt")); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dir, "extra.txt"), "x")
+
+	out, _, exit, _ = runCmd(bin, repoRoot, "verify", dir)
+	lines = strings.Split(strings.TrimSuffix(out, "\n"), "\n")
+	if exit != 1 || len(lines) != 7 ||
+		lines[0] != "Bundle Integrity: INVALID" ||
+		lines[1] != strings.Repeat("-", len(lines[0])) ||
+		lines[2] != "Files Checked: 3" ||
+		lines[3] != "Corrupted Files:" ||
+		!strings.HasPrefix(lines[4], "- a.txt (expected: ") || !strings.Contains(lines[4], "..., found: ") ||
+		lines[5] != "- c.txt (file missing)" ||
+		lines[6] != "- extra.txt (not in manifest)" {
+		t.Errorf("invalid bundle: exit = %d, stdout:\n%s", exit, out)
+	}
+
+	out, _, exit, _ = runCmd(bin, repoRoot, "verify", dir, "-j")
+	var resp struct {
+		Status         string   `json:"status"`
+		CorruptedFiles []string `json:"corrupted_files"`
+		Problems       []struct {
+			Path, Reason, Expected, Found string
+		} `json:"problems"`
+	}
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		t.Fatalf("invalid json: %v: %s", err, out)
+	}
+	if exit != 1 || resp.Status != "invalid" || strings.Join(resp.CorruptedFiles, ",") != "a.txt,c.txt,extra.txt" || len(resp.Problems) != 3 {
+		t.Fatalf("json: exit = %d, %+v", exit, resp)
+	}
+	a, c, extra := resp.Problems[0], resp.Problems[1], resp.Problems[2]
+	if a.Reason != "checksum_mismatch" || len(a.Expected) != 64 || len(a.Found) != 64 || a.Expected == a.Found {
+		t.Errorf("a.txt = %+v", a)
+	}
+	if c.Reason != "missing" || len(c.Expected) != 64 || c.Found != "" {
+		t.Errorf("c.txt = %+v", c)
+	}
+	if extra.Reason != "unlisted" || extra.Expected != "" || extra.Found != "" {
+		t.Errorf("extra.txt = %+v", extra)
 	}
 }

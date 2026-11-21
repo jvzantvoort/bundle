@@ -233,8 +233,25 @@ func TestCLI_RemoteVerifyInvalidExitsOne(t *testing.T) {
 	sum := server.Add("default", &remotetest.Bundle{Title: "Bad", Corrupted: true, Files: map[string][]byte{"a": []byte("x")}})
 
 	out, _, exit := cli.run(t, "verify", "--remote", "origin", sum)
-	if exit != 1 || !strings.Contains(out, "checksum_mismatch") {
+	if exit != 1 || !strings.Contains(out, "Bundle Integrity: INVALID\n") ||
+		!strings.Contains(out, "Files Checked: 1\n") || !strings.Contains(out, "- a (checksum mismatch)\n") {
 		t.Errorf("exit = %d: %s", exit, out)
+	}
+
+	out, _, exit = cli.run(t, "verify", "--remote", "origin", sum, "-j")
+	var resp struct {
+		CorruptedFiles []string `json:"corrupted_files"`
+		Problems       []struct {
+			Path   string `json:"path"`
+			Reason string `json:"reason"`
+		} `json:"problems"`
+	}
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		t.Fatalf("invalid json: %v: %s", err, out)
+	}
+	if exit != 1 || len(resp.CorruptedFiles) != 1 || resp.CorruptedFiles[0] != "a" ||
+		len(resp.Problems) != 1 || resp.Problems[0].Path != "a" || resp.Problems[0].Reason != "checksum_mismatch" {
+		t.Errorf("json: exit = %d, %+v", exit, resp)
 	}
 }
 
