@@ -137,7 +137,13 @@ func Load(bundlePath string) (*Document, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(content, doc); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", FileName, err)
+		// Older bundle-python versions wrote NaN for an EXIF rational with a
+		// zero denominator, which is not valid JSON: read those values as null
+		fixed, changed := nonFiniteToNull(content)
+		if !changed || json.Unmarshal(fixed, doc) != nil {
+			return nil, fmt.Errorf("parse %s: %w", FileName, err)
+		}
+		log.Debugf("%s: read NaN or Infinity values as null", Path(bundlePath))
 	}
 	if doc.Files == nil {
 		doc.Files = map[string]File{}
@@ -146,6 +152,46 @@ func Load(bundlePath string) (*Document, error) {
 		doc.Devices = []Device{}
 	}
 	return doc, nil
+}
+
+// nonFiniteToNull replaces the NaN, Infinity and -Infinity tokens that
+// Python's json module writes with null, outside of strings.
+func nonFiniteToNull(content []byte) ([]byte, bool) {
+	out := make([]byte, 0, len(content))
+	inString, escaped, changed := false, false, false
+	for i := 0; i < len(content); i++ {
+		c := content[i]
+		if inString {
+			switch {
+			case escaped:
+				escaped = false
+			case c == '\\':
+				escaped = true
+			case c == '"':
+				inString = false
+			}
+			out = append(out, c)
+			continue
+		}
+		if c == '"' {
+			inString = true
+			out = append(out, c)
+			continue
+		}
+		replaced := false
+		for _, token := range []string{"NaN", "Infinity", "-Infinity"} {
+			if bytes.HasPrefix(content[i:], []byte(token)) {
+				out = append(out, "null"...)
+				i += len(token) - 1
+				replaced, changed = true, true
+				break
+			}
+		}
+		if !replaced {
+			out = append(out, c)
+		}
+	}
+	return out, changed
 }
 
 // Save writes MEDIA.json atomically, with sorted keys and two-space
