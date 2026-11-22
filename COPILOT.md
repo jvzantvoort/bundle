@@ -38,6 +38,7 @@ bundle/
 | `TAGS.txt` | Plaintext or JSON list of user-assigned tags for classification. |
 | `SHA256SUM.txt` | List of SHA256 checksums of all files in the bundle (excluding `.bundle/` itself). |
 | `STATE.json` | Internal state file used by the Bundle Library for synchronization, indexing, and integrity status. |
+| `MEDIA.json` | Optional. EXIF data, resolution, capture time, GPS and device of the media files, written by `bundle update --media` or bundle-python. Outside the checksum. |
 
 ---
 
