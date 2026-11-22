@@ -84,6 +84,13 @@ bundle list /path/to/bundle
 bundle info /path/to/bundle --json
 ```
 
+### Media Metadata
+
+```bash
+# Look up EXIF data, resolution, capture time, GPS and device of images and videos
+bundle update /path/to/bundle --media
+```
+
 ### Centralized Storage (Pools)
 
 ```bash
@@ -163,6 +170,7 @@ Bundle Library follows a library-first architecture with independent components:
 - `pool/` - Centralized storage and pool management
 - `scanner/` - Directory traversal and file discovery
 - `lock/` - Concurrency control for write operations
+- `media/` - MEDIA.json handling (EXIF data, resolution, GPS, device of media files)
 - `bundle/` - High-level bundle operations
 
 CLI commands in `cmd/` use dependency injection to call library functions.
@@ -619,6 +627,39 @@ bundle tag list <path> [--json]
 }
 ```
 
+#### update
+
+Update metadata that is derived from the bundle's files, in place. The files,
+checksum, title and tags do not change.
+
+```bash
+bundle update <path> --media [--force] [--json]
+```
+
+`--media` stores the EXIF data, resolution, capture time, GPS position and
+device (camera or phone) of the bundle's images and videos in
+`.bundle/MEDIA.json`. It writes the same format as
+[bundle-python](https://github.com/jvzantvoort/bundle-python), so either tool
+can update a file the other wrote, and bundle-server serves it read-only. The
+scan is incremental: files whose checksum is unchanged are skipped and entries
+of removed files are dropped; `--force` reads every file again. The bundle is
+locked while it runs.
+
+| Kind | Formats |
+| --- | --- |
+| Size | JPEG, PNG, GIF, BMP, TIFF, WebP |
+| EXIF | JPEG, TIFF; tag names and values as Pillow gives them |
+| Video | anything `ffprobe` (ffmpeg) reads; without `ffprobe` on `PATH` videos are skipped with a warning |
+
+**JSON Output:**
+```json
+{
+  "status": "updated",
+  "path": "/path/to/bundle",
+  "media": {"added": 12, "updated": 0, "skipped": 30, "unsupported": 2, "removed": 0, "files": 42, "devices": 2}
+}
+```
+
 ### Bundle Structure
 
 A bundle is a directory with the following structure:
@@ -630,6 +671,7 @@ my-bundle/
 │   ├── STATE.json     # Operational state (verified, replicas)
 │   ├── TAGS.txt       # Searchable tags (one per line)
 │   ├── SHA256SUM.txt  # File checksums
+│   ├── MEDIA.json     # Media metadata (optional, from `bundle update --media`)
 │   └── .lock          # Lock file (temporary)
 ├── file1.jpg
 ├── file2.pdf

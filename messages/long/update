@@ -1,0 +1,32 @@
+Update metadata of a bundle that is derived from its files, in place.
+
+The bundle's files, checksum, title and tags are not changed. Choose what to
+update with an option:
+
+  --media   Look up the EXIF data, resolution, capture time, GPS position
+            and device (camera or phone) of the bundle's images and videos,
+            and store it in .bundle/MEDIA.json. This is the same file that
+            bundle-python writes, and bundle-server serves it read-only.
+
+The media scan is incremental: files whose checksum is unchanged since the
+last scan are skipped, and entries of files that are no longer in the bundle
+are removed. --force reads every file again.
+
+Images: JPEG, PNG, GIF, BMP, TIFF and WebP; EXIF data from JPEG and TIFF.
+Videos need ffprobe (ffmpeg) on PATH; without it they are skipped with a
+warning.
+
+Examples:
+  # Look up media metadata
+  bundle update /path/to/bundle --media
+
+  # Read every file again
+  bundle update /path/to/bundle --media --force
+
+  # Machine-readable summary
+  bundle update /path/to/bundle --media --json
+
+Exit codes:
+  0  success
+  1  user error: no option, not a bundle
+  2  system error: bundle locked, unreadable file or MEDIA.json
