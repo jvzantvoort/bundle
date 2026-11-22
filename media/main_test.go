@@ -369,3 +369,32 @@ func TestLoadMissingIsEmpty(t *testing.T) {
 		t.Fatalf("Load of a bundle without MEDIA.json = %+v, %v", doc, err)
 	}
 }
+
+func TestLoadReadsPythonNaNAsNull(t *testing.T) {
+	dir := t.TempDir()
+	// As bundle-python before the fix wrote it: NaN for a 0/0 rational
+	write(t, Path(dir), []byte(`{"version": 1, "devices": [], "files": {
+	  "a.jpg": {"type": "image", "taken_at": "NaN Infinity", "exif": {
+	    "LensSpecification": [16.0, 35.0, NaN, NaN], "Odd": [Infinity, -Infinity], "Quote": "say \"NaN\""}}}}`))
+	doc, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	exif := doc.Files["a.jpg"].EXIF
+	if got, _ := json.Marshal(exif["LensSpecification"]); string(got) != "[16,35,null,null]" {
+		t.Errorf("LensSpecification = %s", got)
+	}
+	if got, _ := json.Marshal(exif["Odd"]); string(got) != "[null,null]" {
+		t.Errorf("Odd = %s", got)
+	}
+	// Text inside strings is left alone
+	if doc.Files["a.jpg"].TakenAt != "NaN Infinity" || exif["Quote"] != `say "NaN"` {
+		t.Errorf("strings changed: %q, %q", doc.Files["a.jpg"].TakenAt, exif["Quote"])
+	}
+
+	// Other invalid JSON is still an error
+	write(t, Path(dir), []byte(`{"files": {"a.jpg": NaNx}}`))
+	if _, err := Load(dir); err == nil {
+		t.Error("invalid JSON accepted")
+	}
+}
