@@ -120,7 +120,7 @@ System error: permission denied: /root/protected
 **Output (Success, Table Mode)**:
 ```text
 Bundle Integrity: VALID
----------------------
+-----------------------
 Files Checked: 42
 Last Verified: 2025-10-30 10:48:42
 ```
@@ -131,19 +131,25 @@ Last Verified: 2025-10-30 10:48:42
   "status": "valid",
   "files_checked": 42,
   "last_verified": "2025-10-30T10:48:42Z",
-  "corrupted_files": []
+  "corrupted_files": [],
+  "problems": []
 }
 ```
 
 **Output (Failure, Table Mode)**:
 ```text
 Bundle Integrity: INVALID
-------------------------
+-------------------------
 Files Checked: 42
 Corrupted Files:
 - IMG_001.jpg (expected: 0f343b09..., found: deadbeef...)
+- notes.txt (not in manifest)
 - video.mp4 (file missing)
 ```
+
+Files are sorted by path. `.bundle/SHA256SUM.txt` is listed last, as
+`(manifest does not match bundle checksum)`, when the manifest does not hash to
+the bundle checksum.
 
 **Output (Failure, JSON Mode)**:
 ```json
@@ -151,21 +157,31 @@ Corrupted Files:
   "status": "invalid",
   "files_checked": 42,
   "last_verified": "2025-10-30T10:48:42Z",
-  "corrupted_files": [
+  "corrupted_files": ["IMG_001.jpg", "notes.txt", "video.mp4"],
+  "problems": [
     {
       "path": "IMG_001.jpg",
+      "reason": "checksum_mismatch",
       "expected": "0f343b0931126a20f133d67c2b018a3b49ecf84816be857c8b95e23c8e0a3d10",
       "found": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
     },
     {
+      "path": "notes.txt",
+      "reason": "unlisted"
+    },
+    {
       "path": "video.mp4",
-      "expected": "a7d5c8f9e1234567890abcdef1234567890abcdef1234567890abcdef123456",
-      "found": null,
-      "error": "file missing"
+      "reason": "missing",
+      "expected": "a7d5c8f9e1234567890abcdef1234567890abcdef1234567890abcdef1234567"
     }
   ]
 }
 ```
+
+`corrupted_files` lists the paths; `problems` gives the reason for each, using
+the reason values of the Bundle Server API: `checksum_mismatch`, `missing`,
+`unlisted` and `manifest_checksum_mismatch`. `expected` and `found` are left out
+when not known. With `--remote`, the server's reasons are passed through.
 
 ---
 

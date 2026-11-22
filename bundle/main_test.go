@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/jvzantvoort/bundle/checksum"
 	"github.com/jvzantvoort/bundle/metadata"
@@ -417,5 +418,71 @@ func TestMigrate_RefusesCorruptedBundles(t *testing.T) {
 				t.Errorf("refused migration changed metadata: %+v", meta)
 			}
 		})
+	}
+}
+
+func TestVerifyDetailed(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"a.txt": "a", "sub/b.txt": "b"})
+	created, err := Create(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	before := time.Now()
+	result, err := VerifyDetailed(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Verified || result.FilesChecked != 2 || len(result.Problems) != 0 || result.Problems == nil {
+		t.Fatalf("clean bundle: %+v", result)
+	}
+	if result.CheckedAt.Before(before) {
+		t.Errorf("CheckedAt = %v, before the call", result.CheckedAt)
+	}
+	reloaded, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reloaded.State.LastChecked.Equal(result.CheckedAt) || !reloaded.State.Verified {
+		t.Errorf("STATE.json = %+v, want verified at %v", reloaded.State, result.CheckedAt)
+	}
+
+	// Rewrite the manifest for a renamed file: every file matches it, but the
+	// manifest no longer matches the bundle checksum
+	if err := os.Rename(filepath.Join(dir, "a.txt"), filepath.Join(dir, "c.txt")); err != nil {
+		t.Fatal(err)
+	}
+	cf := &checksum.ChecksumFile{}
+	if err := cf.Compute(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := cf.Save(dir); err != nil {
+		t.Fatal(err)
+	}
+	result, err = VerifyDetailed(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := checksum.Problem{
+		Path:     ".bundle/SHA256SUM.txt",
+		Reason:   checksum.ReasonManifest,
+		Expected: created.Metadata.BundleChecksum,
+		Found:    checksum.ComputeBundleChecksum(cf.Records),
+	}
+	if result.Verified || len(result.Problems) != 1 || result.Problems[0] != want {
+		t.Fatalf("renamed file: %+v, want only %+v", result, want)
+	}
+
+	// Verify reports the same paths
+	ok, corrupted, err := Verify(dir)
+	if err != nil || ok || !slices.Equal(corrupted, []string{".bundle/SHA256SUM.txt"}) {
+		t.Errorf("Verify = %v %v %v", ok, corrupted, err)
+	}
+}
+
+func TestVerifyDetailed_NotABundle(t *testing.T) {
+	if _, err := VerifyDetailed(t.TempDir()); !errors.Is(err, utils.ErrNotABundle) {
+		t.Errorf("err = %v, want ErrNotABundle", err)
 	}
 }

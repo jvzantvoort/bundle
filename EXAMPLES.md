@@ -684,7 +684,8 @@ $ bundle verify ./photos --json
   "status": "valid",
   "files_checked": 42,
   "last_verified": "2024-01-15T10:30:00Z",
-  "corrupted_files": []
+  "corrupted_files": [],
+  "problems": []
 }
 
 # Bundle info

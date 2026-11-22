@@ -407,19 +407,11 @@ func (cf *ChecksumFile) Compute(bundlePath string, ignore ...string) error {
 //   - []string: sorted relative paths of corrupted, missing or unlisted files
 //   - error: if checksums cannot be computed or files cannot be read
 func (cf *ChecksumFile) Verify(bundlePath string, ignore ...string) ([]string, error) {
-	corrupted, err := cf.VerifyRecords(bundlePath)
+	problems, err := cf.Check(bundlePath, ignore...)
 	if err != nil {
 		return nil, err
 	}
-
-	untracked, err := cf.Untracked(bundlePath, ignore...)
-	if err != nil {
-		return nil, err
-	}
-
-	corrupted = append(corrupted, untracked...)
-	sort.Strings(corrupted)
-	return corrupted, nil
+	return Paths(problems), nil
 }
 
 // VerifyRecords checks only the files listed in the manifest.
@@ -431,7 +423,76 @@ func (cf *ChecksumFile) Verify(bundlePath string, ignore ...string) ([]string, e
 //   - []string: relative paths of listed files that are missing or modified
 //   - error: if checksums cannot be computed or files cannot be read
 func (cf *ChecksumFile) VerifyRecords(bundlePath string) ([]string, error) {
-	corrupted := []string{}
+	problems, err := cf.checkRecords(bundlePath)
+	if err != nil {
+		return nil, err
+	}
+	return Paths(problems), nil
+}
+
+// Reasons a file does not match the manifest, as reported in Problem.Reason.
+// They are the reason values of the Bundle Server API (openapi.yaml).
+const (
+	// ReasonChecksumMismatch: the file's checksum differs from the manifest
+	ReasonChecksumMismatch = "checksum_mismatch"
+	// ReasonMissing: a listed file does not exist, or is a directory
+	ReasonMissing = "missing"
+	// ReasonUnlisted: the file exists but the manifest does not list it
+	ReasonUnlisted = "unlisted"
+	// ReasonManifest: the manifest does not hash to the bundle checksum
+	ReasonManifest = "manifest_checksum_mismatch"
+)
+
+// Problem is one file that does not match the manifest.
+type Problem struct {
+	Path     string `json:"path"`               // Relative path from the bundle root
+	Reason   string `json:"reason"`             // One of the Reason constants
+	Expected string `json:"expected,omitempty"` // Checksum the manifest records, if any
+	Found    string `json:"found,omitempty"`    // Checksum of the file on disk, if computed
+}
+
+// Check is Verify with the reason for each file.
+//
+// Example:
+//
+//	problems, err := files.Check("/path/to/bundle")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	for _, p := range problems {
+//	    fmt.Printf("%s: %s\n", p.Path, p.Reason)
+//	}
+//
+// Parameters:
+//   - bundlePath: absolute or relative path to the bundle directory
+//   - ignore: patterns from NormalizeIgnore; matching unlisted files are accepted,
+//     listed files are always checked
+//
+// Returns:
+//   - []Problem: modified, missing and unlisted files, sorted by path; empty
+//     when every file matches
+//   - error: if checksums cannot be computed or files cannot be read
+func (cf *ChecksumFile) Check(bundlePath string, ignore ...string) ([]Problem, error) {
+	problems, err := cf.checkRecords(bundlePath)
+	if err != nil {
+		return nil, err
+	}
+
+	untracked, err := cf.Untracked(bundlePath, ignore...)
+	if err != nil {
+		return nil, err
+	}
+	for _, path := range untracked {
+		problems = append(problems, Problem{Path: path, Reason: ReasonUnlisted})
+	}
+
+	sort.Slice(problems, func(i, j int) bool { return problems[i].Path < problems[j].Path })
+	return problems, nil
+}
+
+// checkRecords checks the files listed in the manifest.
+func (cf *ChecksumFile) checkRecords(bundlePath string) ([]Problem, error) {
+	problems := []Problem{}
 
 	for _, record := range cf.Records {
 		filePath := filepath.Join(bundlePath, filepath.FromSlash(record.FilePath))
@@ -439,7 +500,7 @@ func (cf *ChecksumFile) VerifyRecords(bundlePath string) ([]string, error) {
 		// Check if file exists
 		info, err := os.Stat(filePath)
 		if os.IsNotExist(err) || (err == nil && info.IsDir()) {
-			corrupted = append(corrupted, record.FilePath)
+			problems = append(problems, Problem{Path: record.FilePath, Reason: ReasonMissing, Expected: record.Checksum})
 			continue
 		}
 
@@ -451,11 +512,26 @@ func (cf *ChecksumFile) VerifyRecords(bundlePath string) ([]string, error) {
 
 		// Compare
 		if checksum != record.Checksum {
-			corrupted = append(corrupted, record.FilePath)
+			problems = append(problems, Problem{Path: record.FilePath, Reason: ReasonChecksumMismatch, Expected: record.Checksum, Found: checksum})
 		}
 	}
 
-	return corrupted, nil
+	return problems, nil
+}
+
+// Paths returns the paths of problems, in the same order.
+//
+// Parameters:
+//   - problems: the result of Check
+//
+// Returns:
+//   - []string: one path per problem; empty, not nil, when there are none
+func Paths(problems []Problem) []string {
+	paths := make([]string, 0, len(problems))
+	for _, problem := range problems {
+		paths = append(paths, problem.Path)
+	}
+	return paths
 }
 
 // Untracked lists files in the bundle that the manifest does not mention.

@@ -233,33 +233,77 @@ func Create(path string, title string, ignore ...string) (*Bundle, error) {
 //   - error: utils.ErrNotABundle, utils.ErrIncompleteBundle,
 //     utils.ErrCorruptedBundle for unreadable metadata, or an I/O error
 func Verify(path string, ignore ...string) (bool, []string, error) {
+	result, err := VerifyDetailed(path, ignore...)
+	if err != nil {
+		return false, nil, err
+	}
+	return result.Verified, checksum.Paths(result.Problems), nil
+}
+
+// VerifyResult is the outcome of VerifyDetailed.
+type VerifyResult struct {
+	Verified     bool               // True if the bundle matches its manifest and bundle checksum
+	FilesChecked int                // Number of files the manifest lists
+	CheckedAt    time.Time          // When the check ran; also saved in STATE.json
+	Problems     []checksum.Problem // What did not match, sorted by path; empty if Verified
+}
+
+// VerifyDetailed is Verify with the reason for each problem.
+//
+// A modified file has the expected and found checksums; a missing file the
+// expected one. If the manifest does not match the bundle checksum,
+// .bundle/SHA256SUM.txt is reported with both bundle checksums.
+//
+// Example:
+//
+//	result, err := bundle.VerifyDetailed("/path/to/bundle")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	for _, p := range result.Problems {
+//	    fmt.Printf("%s: %s\n", p.Path, p.Reason)
+//	}
+//
+// Parameters:
+//   - path: absolute or relative path to the bundle directory
+//   - ignore: extra patterns of unlisted files to accept, besides those in META.json
+//
+// Returns:
+//   - *VerifyResult: the outcome
+//   - error: as for Verify
+func VerifyDetailed(path string, ignore ...string) (*VerifyResult, error) {
 	// Check if .bundle exists
 	if _, err := os.Stat(filepath.Join(path, ".bundle")); os.IsNotExist(err) {
-		return false, nil, utils.ErrNotABundle
+		return nil, utils.ErrNotABundle
 	}
 
 	// Load metadata
 	meta, err := metadata.Load(path)
 	if err != nil {
-		return false, nil, classifyLoadError(err)
+		return nil, classifyLoadError(err)
 	}
 	if err := meta.Validate(); err != nil {
-		return false, nil, fmt.Errorf("%w: META.json: %v", utils.ErrCorruptedBundle, err)
+		return nil, fmt.Errorf("%w: META.json: %v", utils.ErrCorruptedBundle, err)
 	}
 
 	// Load checksums
 	files := &checksum.ChecksumFile{}
 	if err := files.Load(path); err != nil {
-		return false, nil, classifyLoadError(err)
+		return nil, classifyLoadError(err)
 	}
 
 	// Verify
-	corrupted, err := files.Verify(path, append(meta.Ignore, ignore...)...)
+	problems, err := files.Check(path, append(meta.Ignore, ignore...)...)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
-	if expectedChecksum(meta, files) != meta.BundleChecksum {
-		corrupted = append(corrupted, ".bundle/SHA256SUM.txt")
+	if found := expectedChecksum(meta, files); found != meta.BundleChecksum {
+		problems = append(problems, checksum.Problem{
+			Path:     ".bundle/SHA256SUM.txt",
+			Reason:   checksum.ReasonManifest,
+			Expected: meta.BundleChecksum,
+			Found:    found,
+		})
 	}
 
 	// Update state
@@ -269,13 +313,18 @@ func Verify(path string, ignore ...string) (bool, []string, error) {
 		bundleState = &state.State{}
 	}
 
-	verified := len(corrupted) == 0
-	bundleState.MarkVerified(verified, time.Now())
+	result := &VerifyResult{
+		Verified:     len(problems) == 0,
+		FilesChecked: len(files.Records),
+		CheckedAt:    time.Now(),
+		Problems:     problems,
+	}
+	bundleState.MarkVerified(result.Verified, result.CheckedAt)
 	if err := bundleState.Save(path); err != nil {
 		log.Warnf("failed to save verification state: %v", err)
 	}
 
-	return verified, corrupted, nil
+	return result, nil
 }
 
 // Migrate upgrades a version 1 bundle to the current checksum algorithm.

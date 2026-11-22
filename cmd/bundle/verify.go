@@ -6,11 +6,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/jvzantvoort/bundle/messages"
 	"github.com/jvzantvoort/bundle/bundle"
 	"github.com/jvzantvoort/bundle/checksum"
-	"github.com/jvzantvoort/bundle/state"
 	"github.com/jvzantvoort/bundle/utils"
 	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
@@ -53,7 +54,7 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	verified, corrupted, err := bundle.Verify(path)
+	result, err := bundle.VerifyDetailed(path)
 	if err != nil {
 		code := utils.ExitCodeFromError(err)
 		if code == 2 {
@@ -64,47 +65,72 @@ func handleVerifyCmd(cmd *cobra.Command, args []string) {
 		os.Exit(code)
 	}
 
-	if !jsonOutput {
-		if verified {
-			fmt.Println("Bundle Integrity: VALID")
-		} else {
-			fmt.Println("Bundle Integrity: INVALID")
-			for _, file := range corrupted {
-				fmt.Printf("Corrupted: %s\n", file)
-			}
-		}
-	}
-
 	if jsonOutput {
-		if corrupted == nil {
-			corrupted = []string{}
-		}
 		out := map[string]interface{}{
-			"status":          "",
-			"files_checked":   0,
-			"last_verified":   "",
-			"corrupted_files": corrupted,
-		}
-		// Read these on their own: a problem elsewhere in the bundle must not hide the result
-		files := &checksum.ChecksumFile{}
-		if err := files.Load(path); err == nil {
-			out["files_checked"] = len(files.Records)
-		}
-		if st, err := state.Load(path); err == nil {
-			out["last_verified"] = st.LastChecked.UTC().Format("2006-01-02T15:04:05Z")
-		}
-		if verified {
-			out["status"] = "valid"
-		} else {
-			out["status"] = "invalid"
+			"status":          map[bool]string{true: "valid", false: "invalid"}[result.Verified],
+			"files_checked":   result.FilesChecked,
+			"last_verified":   result.CheckedAt.UTC().Format("2006-01-02T15:04:05Z"),
+			"corrupted_files": checksum.Paths(result.Problems),
+			"problems":        result.Problems,
 		}
 		if err := utils.OutputJSON(out); err != nil {
 			log.Errorf("failed to output json: %v", err)
 			os.Exit(2)
 		}
+	} else {
+		printVerification(result.Verified, result.FilesChecked, result.CheckedAt, result.Problems)
 	}
 
-	if !verified {
+	if !result.Verified {
 		os.Exit(1)
 	}
+}
+
+// printVerification prints a verification result in the table format of the
+// CLI contract, for a local or a server-side verification.
+func printVerification(verified bool, filesChecked int, checkedAt time.Time, problems []checksum.Problem) {
+	header := "Bundle Integrity: VALID"
+	if !verified {
+		header = "Bundle Integrity: INVALID"
+	}
+	fmt.Println(header)
+	fmt.Println(strings.Repeat("-", len(header)))
+	fmt.Printf("Files Checked: %d\n", filesChecked)
+	if verified {
+		fmt.Printf("Last Verified: %s\n", checkedAt.Local().Format("2006-01-02 15:04:05"))
+		return
+	}
+	fmt.Println("Corrupted Files:")
+	for _, problem := range problems {
+		fmt.Printf("- %s (%s)\n", problem.Path, describeProblem(problem))
+	}
+}
+
+// describeProblem explains a problem in a few words.
+func describeProblem(problem checksum.Problem) string {
+	switch problem.Reason {
+	case checksum.ReasonChecksumMismatch:
+		if problem.Expected != "" && problem.Found != "" {
+			return fmt.Sprintf("expected: %s..., found: %s...", shortChecksum(problem.Expected), shortChecksum(problem.Found))
+		}
+		return "checksum mismatch"
+	case checksum.ReasonMissing:
+		return "file missing"
+	case checksum.ReasonUnlisted:
+		return "not in manifest"
+	case checksum.ReasonManifest:
+		return "manifest does not match bundle checksum"
+	case "":
+		return "corrupted"
+	default:
+		return problem.Reason
+	}
+}
+
+// shortChecksum returns the first 8 characters of a checksum.
+func shortChecksum(sum string) string {
+	if len(sum) > 8 {
+		return sum[:8]
+	}
+	return sum
 }

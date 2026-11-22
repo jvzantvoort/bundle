@@ -166,7 +166,7 @@ drwxr-xr-x  3 user user 4096 Oct 30 10:48 ..
 ```bash
 $ bundle verify ~/test-bundle
 Bundle Integrity: VALID
----------------------
+-----------------------
 Files Checked: 2
 Last Verified: 2025-10-30 10:48:42
 
@@ -175,7 +175,7 @@ $ echo "Modified" > ~/test-bundle/file1.txt
 
 $ bundle verify ~/test-bundle
 Bundle Integrity: INVALID
-------------------------
+-------------------------
 Files Checked: 2
 Corrupted Files:
 - file1.txt (expected: 7a8f3b2c..., found: deadbeef...)
